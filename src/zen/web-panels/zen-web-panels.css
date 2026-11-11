@@ -1,0 +1,281 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+#zen-web-panel {
+  /* SidebarController.setPosition() puts an inline order on every tabbox child. */
+  order: 10 !important;
+  position: relative;
+  min-width: 260px;
+
+  :root[zen-right-side="true"] & {
+    order: -1 !important;
+  }
+
+  :root[inDOMFullscreen="true"] & {
+    display: none;
+  }
+
+  /* Over the page instead of next to it, like a Glance. */
+  &[floating] {
+    position: absolute;
+    z-index: 2;
+    inset-block: 0;
+    inset-inline-end: 0;
+    padding: 0 4px 4px;
+    /* Over the page the header needs its own surface to stay readable. */
+    background: light-dark(#e9e9e9, #131313);
+    border-radius: var(--zen-native-inner-radius);
+    box-shadow: var(--zen-big-shadow);
+
+    :root[zen-right-side="true"] & {
+      inset-inline: 0 auto;
+    }
+  }
+
+  &[hide-header] .zen-web-panel-header {
+    display: none;
+  }
+}
+
+.zen-web-panel-resizer {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 6px;
+  z-index: 1;
+  cursor: ew-resize;
+
+  :root[zen-right-side="true"] & {
+    inset-inline-start: auto;
+    inset-inline-end: 0;
+  }
+}
+
+.zen-web-panel-header {
+  gap: 2px;
+  padding: 0 2px 4px;
+  min-height: 32px;
+  color: var(--toolbox-textcolor);
+
+  & toolbarbutton {
+    -moz-context-properties: fill, fill-opacity;
+    fill: currentColor;
+  }
+}
+
+#zen-web-panel-back {
+  list-style-image: url("chrome://browser/skin/zen-icons/back.svg");
+}
+
+#zen-web-panel-forward {
+  list-style-image: url("chrome://browser/skin/zen-icons/forward.svg");
+}
+
+#zen-web-panel-reload {
+  list-style-image: url("chrome://browser/skin/zen-icons/reload.svg");
+}
+
+#zen-web-panel-close {
+  list-style-image: url("chrome://browser/skin/zen-icons/close.svg");
+}
+
+#zen-web-panel-more {
+  list-style-image: url("chrome://browser/skin/zen-icons/menu.svg");
+
+  & > .toolbarbutton-menu-dropmarker {
+    display: none;
+  }
+}
+
+#zen-web-panel-icon {
+  width: 16px;
+  height: 16px;
+  margin-inline-start: 4px;
+}
+
+#zen-web-panel-title {
+  margin-inline: 6px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+#zen-web-panel-notification-anchor {
+  width: 0;
+  height: 16px;
+}
+
+.zen-web-panel-browsers {
+  overflow: clip;
+  box-shadow: var(--zen-big-shadow);
+  /* stylelint-disable-next-line property-no-unknown */
+  corner-shape: round;
+  border-radius: calc(var(--zen-native-inner-radius) / var(--zen-squircle-value));
+}
+
+.zen-web-panel-container browser {
+  background: light-dark(rgb(255, 255, 255), rgb(32, 32, 32));
+  color-scheme: env(-moz-content-preferred-color-scheme);
+}
+
+#zen-web-panels-sidebar {
+  --zen-web-panels-sidebar-sliver: var(--zen-element-separation);
+  order: 20;
+  padding-inline-end: var(--zen-element-separation);
+
+  :root[zen-right-side="true"] & {
+    order: -1;
+    padding-inline: var(--zen-element-separation) 0;
+  }
+
+  :root:is([inDOMFullscreen="true"], [customizing]) & {
+    display: none;
+  }
+}
+
+.zen-web-panels-sidebar-content {
+  align-items: center;
+  gap: 4px;
+  padding-block: var(--zen-element-separation);
+}
+
+.zen-web-panels-sidebar-list {
+  align-items: center;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+/* Outside a <toolbar> a toolbarbutton-1 shows its label and gets no icon
+ * styling, so the sidebar draws its own square buttons. */
+:is(.zen-web-panels-sidebar-content, .zen-web-panels-editor-identity) toolbarbutton {
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  -moz-context-properties: fill, fill-opacity;
+  fill: currentColor;
+
+  & > .toolbarbutton-text {
+    display: none;
+  }
+
+  & > .toolbarbutton-badge-stack {
+    position: relative;
+    box-sizing: border-box;
+    width: 34px;
+    height: 34px;
+    padding: 9px;
+    border-radius: var(--border-radius-medium);
+    transition: background-color 0.1s ease;
+  }
+
+  & .toolbarbutton-badge-stack > .toolbarbutton-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* The toolbar hover colors aren't defined outside toolbars. */
+  &:hover > .toolbarbutton-badge-stack {
+    background-color: color-mix(in srgb, currentColor 10%, transparent);
+  }
+
+  &[checked] > .toolbarbutton-badge-stack {
+    background-color: color-mix(in srgb, currentColor 18%, transparent);
+  }
+}
+
+.zen-web-panels-sidebar-add {
+  list-style-image: url("chrome://browser/skin/zen-icons/plus.svg");
+}
+
+.zen-web-panels-sidebar-item {
+  &[temporary="true"] > .toolbarbutton-badge-stack {
+    outline: 1px dashed color-mix(in srgb, currentColor 40%, transparent);
+    outline-offset: -2px;
+  }
+
+  /* Clicking this corner mutes the panel, see #onItemMouseDown. */
+  &:is([soundplaying], [muted]) > .toolbarbutton-badge-stack::after {
+    content: "";
+    position: absolute;
+    inset-inline-end: 1px;
+    bottom: 1px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: center / 10px no-repeat var(--zen-colors-tertiary) url("chrome://browser/skin/tabbrowser/tab-audio-playing-small.svg");
+    -moz-context-properties: fill;
+    fill: currentColor;
+  }
+
+  &[muted] > .toolbarbutton-badge-stack::after {
+    background-image: url("chrome://browser/skin/tabbrowser/tab-audio-muted-small.svg");
+  }
+}
+
+#zen-web-panels-sidebar[drop-target="true"] .zen-web-panels-sidebar-content {
+  outline: 2px dashed color-mix(in srgb, currentColor 40%, transparent);
+  outline-offset: -2px;
+  border-radius: var(--border-radius-medium);
+}
+
+.zen-web-panels-editor-body {
+  gap: 8px;
+  width: 300px;
+  padding: 12px;
+}
+
+.zen-web-panels-editor-identity {
+  gap: 8px;
+}
+
+.zen-web-panels-editor-title,
+.zen-web-panels-editor-url {
+  flex: 1;
+  margin: 0;
+}
+
+.zen-web-panels-editor-row {
+  gap: 8px;
+}
+
+/* Hides with the tabs in compact mode and slides in from the window edge.
+ * The transparent sliver left inside the window is what catches the hover. */
+:root[zen-compact-mode="true"]:not([customizing]):not([inDOMFullscreen="true"]) {
+  @media -moz-pref("zen.view.compact.hide-tabbar") or -moz-pref("zen.view.use-single-toolbar") {
+    #zen-web-panels-sidebar {
+      position: fixed;
+      z-index: 10;
+      inset-block: var(--zen-element-separation);
+      right: 0;
+      padding-inline: var(--zen-web-panels-sidebar-sliver) var(--zen-element-separation);
+      translate: calc(100% - var(--zen-web-panels-sidebar-sliver));
+      transition: translate 0.15s ease;
+
+      &:is([zen-has-hover], [flash-popup], [has-popup-menu]) {
+        translate: none;
+        transition-duration: 0.25s;
+        transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+      }
+    }
+
+    &[zen-right-side="true"] #zen-web-panels-sidebar {
+      right: auto;
+      left: 0;
+      padding-inline: var(--zen-element-separation) var(--zen-web-panels-sidebar-sliver);
+      translate: calc(-100% + var(--zen-web-panels-sidebar-sliver));
+
+      &:is([zen-has-hover], [flash-popup], [has-popup-menu]) {
+        translate: none;
+      }
+    }
+
+    .zen-web-panels-sidebar-content {
+      padding-inline: 4px;
+      background: light-dark(#e9e9e9, #131313);
+      box-shadow: var(--zen-big-shadow);
+      border-radius: var(--zen-native-inner-radius);
+    }
+  }
+}

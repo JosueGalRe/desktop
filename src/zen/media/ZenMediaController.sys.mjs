@@ -324,7 +324,10 @@ class ZenMediaCard {
   }
 
   onFocus() {
-    if (this.controller) {
+    const webPanelId = this.browser.getAttribute("zen-web-panel-id");
+    if (webPanelId) {
+      this.window.gZenWebPanels.show(webPanelId);
+    } else if (this.controller) {
       this.controller.focus();
     } else {
       const tab = this.window.gBrowser.getTabForBrowser(this.browser);
@@ -338,8 +341,13 @@ class ZenMediaCard {
     const tab = this.window.gBrowser.getTabForBrowser(this.browser);
     if (tab) {
       tab.toggleMuteAudio();
-      this.updateMuteState();
+    } else if (this.browser.audioMuted) {
+      // Web panels have no tab to mute.
+      this.browser.browsingContext?.mediaController?.unmute();
+    } else {
+      this.browser.browsingContext?.mediaController?.mute();
     }
+    this.updateMuteState();
   }
 
   onToggle() {

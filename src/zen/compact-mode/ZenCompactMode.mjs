@@ -628,7 +628,15 @@ window.gZenCompactModeManager = {
       {
         element: gZenVerticalTabsManager.actualWindowButtons,
       },
-    ];
+      {
+        // Missing when web panels are disabled
+        element: document.getElementById("zen-web-panels-sidebar"),
+        screenEdge: this.sidebarIsOnRight ? "left" : "right",
+        keepHoverDuration: Services.prefs.getIntPref(
+          "zen.view.compact.sidebar-keep-hover.duration"
+        ),
+      },
+    ].filter(({ element }) => element);
   },
 
   flashSidebar(duration = lazy.COMPACT_MODE_FLASH_DURATION) {

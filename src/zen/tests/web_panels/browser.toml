@@ -5,6 +5,22 @@
 [DEFAULT]
 support-files = [
   "head.js",
+  "file_web_panels_badge.html",
+  "file_web_panels_media.html",
+  "file_web_panels_permission.html",
+  "file_web_panels_tone.wav",
 ]
+
+["browser_web_panels_commands.js"]
+
+["browser_web_panels_container.js"]
+
+["browser_web_panels_options.js"]
+
+["browser_web_panels_permissions.js"]
+
+["browser_web_panels_sandbox.js"]
+
+["browser_web_panels_sidebar.js"]
 
 ["browser_web_panels_store.js"]

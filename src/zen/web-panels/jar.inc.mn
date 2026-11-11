@@ -2,4 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+        content/browser/zen-components/ZenWebPanels.mjs                         (../../zen/web-panels/ZenWebPanels.mjs)
         content/browser/zen-components/ZenWebPanelsStore.mjs                    (../../zen/web-panels/ZenWebPanelsStore.mjs)
+        content/browser/zen-components/ZenWebPanelsEditor.mjs                   (../../zen/web-panels/ZenWebPanelsEditor.mjs)
+        content/browser/zen-styles/zen-web-panels.css                           (../../zen/web-panels/zen-web-panels.css)

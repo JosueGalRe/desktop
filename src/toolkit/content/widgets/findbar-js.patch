@@ -1,12 +1,16 @@
 diff --git a/toolkit/content/widgets/findbar.js b/toolkit/content/widgets/findbar.js
-index ff9bb99e4ca481feb97d060e34eae37846ba55cf..6517111456d85d975d5857a044c642bdc1294be4 100644
+index 0934995e0bc3b84022f287db809cfdb69d357024..4086d2d90a62a96c46dd3ffe3afc2cb68db42b95 100644
 --- a/toolkit/content/widgets/findbar.js
 +++ b/toolkit/content/widgets/findbar.js
-@@ -1189,6 +1189,7 @@
+@@ -1194,6 +1194,11 @@
       *   e.g. <command name="cmd_find" oncommand="gFindBar.onFindCommand();"/>
       */
      onFindCommand() {
-+      if (gBrowser?.selectedTab?.hasAttribute("zen-empty-tab")) return;
++      if (
++        gBrowser?.getTabForBrowser(this._browser)?.hasAttribute("zen-empty-tab")
++      ) {
++        return undefined;
++      }
        return this.startFind(this.FIND_NORMAL);
      }
  

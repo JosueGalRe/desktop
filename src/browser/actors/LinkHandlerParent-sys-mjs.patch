@@ -1,0 +1,61 @@
+diff --git a/browser/actors/LinkHandlerParent.sys.mjs b/browser/actors/LinkHandlerParent.sys.mjs
+index 695fa5abf9b95720e15cca546a944baed87b9a53..1a54042df6130c4a76deaa2c5e7a111643658575 100644
+--- a/browser/actors/LinkHandlerParent.sys.mjs
++++ b/browser/actors/LinkHandlerParent.sys.mjs
+@@ -103,7 +103,7 @@ export class LinkHandlerParent extends JSWindowActorParent {
+ 
+         if (!aMsg.data.isRichIcon) {
+           let tab = gBrowser.getTabForBrowser(browser);
+-          if (tab.hasAttribute("busy")) {
++          if (tab?.hasAttribute("busy")) {
+             tab.setAttribute("pendingicon", "true");
+           }
+         }
+@@ -163,7 +163,7 @@ export class LinkHandlerParent extends JSWindowActorParent {
+ 
+   clearPendingIcon(gBrowser, aBrowser) {
+     let tab = gBrowser.getTabForBrowser(aBrowser);
+-    tab.removeAttribute("pendingicon");
++    tab?.removeAttribute("pendingicon");
+   }
+ 
+   async setIconFromLink(
+@@ -180,12 +180,14 @@ export class LinkHandlerParent extends JSWindowActorParent {
+     }
+   ) {
+     let tab = gBrowser.getTabForBrowser(browser);
+-    if (!tab) {
++    // Zen web panels aren't tabs, but still show their site's icon.
++    let isWebPanel = !tab && browser.hasAttribute("zen-web-panel-id");
++    if (!tab && !isWebPanel) {
+       return;
+     }
+ 
+     if (images) {
+-      let canvas = tab.ownerDocument.createElement("canvas");
++      let canvas = browser.ownerDocument.createElement("canvas");
+ 
+       // We have multiple images, need to create an ICO file to collect them.
+       if (images.length > 1) {
+@@ -209,7 +211,7 @@ export class LinkHandlerParent extends JSWindowActorParent {
+     }
+ 
+     // The browser might have gone away during `await` above.
+-    if (!gBrowser.getBrowserForTab(tab)) {
++    if (isWebPanel ? !browser.isConnected : !gBrowser.getBrowserForTab(tab)) {
+       return;
+     }
+ 
+@@ -265,7 +267,11 @@ export class LinkHandlerParent extends JSWindowActorParent {
+     }
+ 
+     if (!isRichIcon) {
+-      gBrowser.setIcon(tab, iconURL, originalURL, beforePageShow);
++      if (isWebPanel) {
++        browser.documentGlobal.gZenWebPanels.setIcon(browser, iconURL);
++      } else {
++        gBrowser.setIcon(tab, iconURL, originalURL, beforePageShow);
++      }
+     }
+   }
+ }

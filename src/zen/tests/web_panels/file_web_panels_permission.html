@@ -1,0 +1,9 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>web panel permission</title>
+<script>
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(
+    () => (document.title = "granted"),
+    error => (document.title = error.name)
+  );
+</script>

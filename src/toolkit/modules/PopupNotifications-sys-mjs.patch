@@ -18,3 +18,14 @@ index 5e88f279e570edbf95823bb9dc9835bae89feb32..f50db584dff740583665239d2cc2c5d0
      }
    },
  
+@@ -1668,6 +1677,10 @@ PopupNotifications.prototype = {
+       // Sidebar browser is always active for its notifications
+       return true;
+     }
++    if (browser && browser === this.window.gZenWebPanels?.activeBrowser) {
++      // So is the visible Zen web panel
++      return true;
++    }
+     // We compare on frameLoader instead of just comparing the
+     // selectedBrowser and browser directly because browser tabs in
+     // Responsive Design Mode put the actual web content into a
