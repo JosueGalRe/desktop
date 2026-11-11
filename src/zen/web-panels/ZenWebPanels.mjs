@@ -87,6 +87,7 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
     this.#createSidebar();
     this.#editor = new nsZenWebPanelsEditor();
     document.addEventListener("command", this, true);
+    document.addEventListener("fullscreenchange", this);
     // Floating panels close when clicking anywhere else.
     window.addEventListener("mousedown", this, true);
     Services.prefs.addObserver(ZenWebPanelsStore.PANELS_PREF, this);
@@ -415,6 +416,15 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
 
       case "popuphidden": {
         this.#onPopupHidden(event);
+        break;
+      }
+
+      case "fullscreenchange": {
+        // A panel's page in fullscreen takes the window, like a tab's does.
+        document.documentElement.toggleAttribute(
+          "zen-web-panel-fullscreen",
+          this.#host.contains(document.fullscreenElement)
+        );
         break;
       }
     }

@@ -14,8 +14,28 @@
     order: -1 !important;
   }
 
-  :root[inDOMFullscreen="true"] & {
+  /* A tab in fullscreen takes the whole window... */
+  :root[inDOMFullscreen="true"]:not([zen-web-panel-fullscreen]) & {
     display: none;
+  }
+
+  /* ...and so does a panel's page, over the tab. */
+  :root[inDOMFullscreen="true"][zen-web-panel-fullscreen] & {
+    position: fixed;
+    inset: 0;
+    z-index: 3;
+    width: auto !important;
+    padding: 0;
+    border-radius: 0;
+
+    & :is(.zen-web-panel-header, .zen-web-panel-resizer) {
+      display: none;
+    }
+
+    & .zen-web-panel-browsers {
+      border-radius: 0;
+      box-shadow: none;
+    }
   }
 
   /* Over the page instead of next to it, like a Glance. */

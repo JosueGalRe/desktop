@@ -1,8 +1,23 @@
 diff --git a/browser/base/content/browser-fullScreenAndPointerLock.js b/browser/base/content/browser-fullScreenAndPointerLock.js
-index 58b32cc90a3a0eaef01d83837ca7825d8624b90a..4f980e770913f6c3cef58d8d2b7b79c02c487c12 100644
+index 58b32cc90a3a0eaef01d83837ca7825d8624b90a..675e5bbdb0f7d34d7745fb4ef19f3643d018bca8 100644
 --- a/browser/base/content/browser-fullScreenAndPointerLock.js
 +++ b/browser/base/content/browser-fullScreenAndPointerLock.js
-@@ -523,15 +523,7 @@ var FullScreen = {
+@@ -208,7 +208,13 @@ var PointerlockFsWarning = {
+     // If the user clicked buttons in the warning box, it would have
+     // been focused, and any key events would be directed at the (now
+     // hidden) chrome document instead of the target document.
+-    gBrowser.selectedBrowser.focus();
++    // A Zen web panel can be the browser in fullscreen instead of the tab.
++    let panelBrowser = window.gZenWebPanels?.activeBrowser;
++    if (panelBrowser && document.fullscreenElement == panelBrowser) {
++      panelBrowser.focus();
++    } else {
++      gBrowser.selectedBrowser.focus();
++    }
+   },
+ 
+   // State could be one of "onscreen", "ontop", "hiding", and
+@@ -523,15 +529,7 @@ var FullScreen = {
      // _menubarShift originates from Cocoa widget code as a very precise
      // double. We don't need that kind of precision in our CSS.
      shiftSize = shiftSize.toFixed(2);
@@ -18,3 +33,14 @@ index 58b32cc90a3a0eaef01d83837ca7825d8624b90a..4f980e770913f6c3cef58d8d2b7b79c0
      this._currentToolbarShift = shiftSize;
    },
  
+@@ -639,7 +637,9 @@ var FullScreen = {
+     // actually visible now.
+     if (
+       !aBrowser ||
+-      gBrowser.selectedBrowser != aBrowser ||
++      // The visible Zen web panel is on screen as well.
++      (gBrowser.selectedBrowser != aBrowser &&
++        aBrowser != window.gZenWebPanels?.activeBrowser) ||
+       // The top-level window has lost focus since the request to enter
+       // full-screen was made. Cancel full-screen.
+       Services.focus.activeWindow != window
