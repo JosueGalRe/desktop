@@ -171,7 +171,8 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
   show(id) {
     const panel = this.#panelFor(id);
 
-    if (!panel) {
+    // Private, popup and disabled windows have no host, but get the keys.
+    if (!panel || !this.#host) {
       return;
     }
 
@@ -314,9 +315,10 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
     }
 
     const currentURL = entry.browser.currentURI.spec;
+    // With what was set while temporary, like its zoom and width.
     const panel = ZenWebPanelsStore.addPanel(
       ZenWebPanelsStore.isAllowedURL(currentURL) ? currentURL : temporary.url,
-      { userContextId: temporary.userContextId }
+      temporary
     );
 
     if (!panel) {

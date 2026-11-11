@@ -526,6 +526,11 @@ export class ZenMediaController extends ZenUIComponent {
   }
 
   onAudioPlaybackStarted(browser) {
+    // Web panels report playback directly, even with media controls off.
+    if (!this.mediaControlBar) {
+      return;
+    }
+
     // The card is created right away (while the controller is fresh) but
     // only shown if the media is still playing a moment later, so short
     // sounds (e.g. notification pings) never reveal it.

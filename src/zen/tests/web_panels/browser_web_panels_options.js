@@ -282,12 +282,20 @@ add_task(async function test_temporary_panel() {
   );
   const browser = gZenWebPanels.activeBrowser;
   const temporaryId = browser.getAttribute("zen-web-panel-id");
+
+  browser.focus();
+  EventUtils.synthesizeKey("+", { accelKey: true });
+  await TestUtils.waitForCondition(
+    () => ZoomManager.getZoomForBrowser(browser) > 1,
+    "The temporary panel is zoomed in"
+  );
   gZenWebPanels.keepTemporary(temporaryId);
 
   const kept = ZenWebPanelsStore.getPanels().find(
     panel => panel.url === "https://example.com/"
   );
   ok(kept, "Keeping it stores it");
+  ok(kept.zoom > 1, "With the zoom it had");
   is(gZenWebPanels.activeBrowser, browser, "Without reloading it");
 
   gZenWebPanels.hide();
@@ -452,4 +460,39 @@ add_task(async function test_sound_indicator_and_mute() {
   browser.browsingContext.mediaController.pause("user");
   gZenWebPanels.hide();
   removeAllWebPanels();
+});
+
+add_task(async function test_panel_audio_with_media_controls_off() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["zen.mediacontrols.enabled", false],
+      // Otherwise the new window's tab is synced into this one.
+      ["zen.window-sync.enabled", false],
+      ["media.autoplay.default", 0],
+      ["media.volume_scale", "0.0"],
+      // The test tone is shorter than the media Firefox lets you control.
+      ["media.mediacontrol.eligible.media.duration.s", "0.5"],
+    ],
+  });
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+  await win.gZenWorkspaces.promiseInitialized;
+  const panel = ZenWebPanelsStore.addPanel(
+    TEST_ROOT + "file_web_panels_media.html"
+  );
+
+  win.gZenWebPanels.show(panel.id);
+  const browser = win.gZenWebPanels.activeBrowser;
+  await TestUtils.waitForCondition(
+    () => browser.browsingContext?.mediaController?.isActive,
+    "The panel plays its audio"
+  );
+
+  // Panels report playback to the media controller directly.
+  win.gZenMediaController.onAudioPlaybackStarted(browser);
+  ok(true, "Without media controls there's no card to add");
+
+  browser.browsingContext.mediaController.pause("user");
+  await BrowserTestUtils.closeWindow(win);
+  removeAllWebPanels();
+  await SpecialPowers.popPrefEnv();
 });

@@ -130,6 +130,21 @@ add_task(async function test_shortcut_toggles_last_panel() {
   removeAllWebPanels();
 });
 
+add_task(async function test_windows_without_web_panels_ignore_shortcuts() {
+  ZenWebPanelsStore.addPanel("https://example.com/");
+  const win = await BrowserTestUtils.openNewBrowserWindow({ private: true });
+
+  win.gZenWebPanels.toggleLast();
+  win.gZenWebPanels.toggleIndex(0);
+  ok(
+    !win.document.getElementById("zen-web-panel"),
+    "Private windows have no web panels to open"
+  );
+
+  await BrowserTestUtils.closeWindow(win);
+  removeAllWebPanels();
+});
+
 add_task(async function test_sidebar_hides_with_tabs_in_compact_mode() {
   const entry = gZenCompactModeManager.hoverableElements.find(
     ({ element }) => element === sidebar()
