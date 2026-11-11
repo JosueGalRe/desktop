@@ -99,6 +99,37 @@ add_task(async function test_dragging_an_item_reorders_panels() {
   removeAllWebPanels();
 });
 
+add_task(async function test_shortcut_toggles_last_panel() {
+  const first = ZenWebPanelsStore.addPanel("https://example.com/");
+  const second = ZenWebPanelsStore.addPanel("https://example.org/");
+
+  const key = document.getElementById("zen-web-panels-toggle");
+  is(key.getAttribute("command"), "cmd_zenWebPanelsToggle", "The key is wired");
+
+  document.getElementById("cmd_zenWebPanelsToggle").doCommand();
+  await TestUtils.waitForCondition(
+    () => gZenWebPanels.activeBrowser?.currentURI.spec === first.url,
+    "With nothing used yet, the first panel opens"
+  );
+
+  sidebarItemFor(second).doCommand();
+  await TestUtils.waitForCondition(
+    () => gZenWebPanels.activeBrowser?.currentURI.spec === second.url
+  );
+  document.getElementById("cmd_zenWebPanelsToggle").doCommand();
+  ok(!gZenWebPanels.activeBrowser, "The shortcut closes the open panel");
+
+  document.getElementById("cmd_zenWebPanelsToggle").doCommand();
+  is(
+    gZenWebPanels.activeBrowser?.currentURI.spec,
+    second.url,
+    "And reopens the last one used"
+  );
+
+  gZenWebPanels.hide();
+  removeAllWebPanels();
+});
+
 add_task(async function test_sidebar_hides_with_tabs_in_compact_mode() {
   const entry = gZenCompactModeManager.hoverableElements.find(
     ({ element }) => element === sidebar()

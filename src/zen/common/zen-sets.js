@@ -25,6 +25,7 @@
   };
 
   const WORKSPACE_SWITCH_COMMAND_PREFIX = "cmd_zenWorkspaceSwitch";
+  const WEB_PANEL_COMMAND = /^cmd_zenWebPanel(\d)$/;
 
   /**
    * Handlers for the <command> elements of <commandset id="zenCommandSet">
@@ -117,6 +118,7 @@
     cmd_zenNewNavigatorUnsynced: () =>
       OpenBrowserWindow({ zenSyncedWindow: false }),
     cmd_zenToggleLibrary: () => lazy.ZenLibrary.toggle(),
+    cmd_zenWebPanelsToggle: () => gZenWebPanels.toggleLast(),
   };
 
   function handleZenCommand(event) {
@@ -133,6 +135,11 @@
       const index =
         parseInt(id.replace(WORKSPACE_SWITCH_COMMAND_PREFIX, ""), 10) - 1;
       gZenWorkspaces.shortcutSwitchTo(index);
+      return;
+    }
+    const webPanel = WEB_PANEL_COMMAND.exec(id);
+    if (webPanel) {
+      gZenWebPanels.toggleIndex(Number(webPanel[1]) - 1);
       return;
     }
     gZenGlanceManager.handleMainCommandSet(event);

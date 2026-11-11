@@ -261,6 +261,27 @@ add_task(async function test_temporary_panel() {
   removeAllWebPanels();
 });
 
+add_task(async function test_panel_shortcuts() {
+  ZenWebPanelsStore.addPanel("https://example.com/");
+  const second = ZenWebPanelsStore.addPanel("https://example.org/");
+
+  is(
+    document.getElementById("zen-web-panel-2").getAttribute("command"),
+    "cmd_zenWebPanel2",
+    "Each position has its key"
+  );
+
+  document.getElementById("cmd_zenWebPanel2").doCommand();
+  await TestUtils.waitForCondition(
+    () => gZenWebPanels.activeBrowser?.currentURI.spec === second.url,
+    "The second shortcut opens the second panel"
+  );
+  document.getElementById("cmd_zenWebPanel2").doCommand();
+  ok(!gZenWebPanels.activeBrowser, "And closes it again");
+
+  removeAllWebPanels();
+});
+
 add_task(async function test_dropping_tabs_and_links_on_sidebar() {
   const sidebar = document.getElementById("zen-web-panels-sidebar");
   const drop = dataTransfer => {

@@ -36,6 +36,29 @@
 
   <key id="zen-toggle-sidebar" command="cmd_zenToggleSidebar"/>
   <key id="zen-library-toggle" key="L" modifiers="alt,shift" command="cmd_zenToggleLibrary"/>
+  <key id="zen-web-panels-toggle" key="P" modifiers="accel,alt" command="cmd_zenWebPanelsToggle"/>
+# Ctrl+Alt is AltGr on many layouts outside macOS, so those start unassigned.
+#ifdef XP_MACOSX
+  <key id="zen-web-panel-1" key="1" modifiers="accel,alt" command="cmd_zenWebPanel1"/>
+  <key id="zen-web-panel-2" key="2" modifiers="accel,alt" command="cmd_zenWebPanel2"/>
+  <key id="zen-web-panel-3" key="3" modifiers="accel,alt" command="cmd_zenWebPanel3"/>
+  <key id="zen-web-panel-4" key="4" modifiers="accel,alt" command="cmd_zenWebPanel4"/>
+  <key id="zen-web-panel-5" key="5" modifiers="accel,alt" command="cmd_zenWebPanel5"/>
+  <key id="zen-web-panel-6" key="6" modifiers="accel,alt" command="cmd_zenWebPanel6"/>
+  <key id="zen-web-panel-7" key="7" modifiers="accel,alt" command="cmd_zenWebPanel7"/>
+  <key id="zen-web-panel-8" key="8" modifiers="accel,alt" command="cmd_zenWebPanel8"/>
+  <key id="zen-web-panel-9" key="9" modifiers="accel,alt" command="cmd_zenWebPanel9"/>
+#else
+  <key id="zen-web-panel-1" command="cmd_zenWebPanel1"/>
+  <key id="zen-web-panel-2" command="cmd_zenWebPanel2"/>
+  <key id="zen-web-panel-3" command="cmd_zenWebPanel3"/>
+  <key id="zen-web-panel-4" command="cmd_zenWebPanel4"/>
+  <key id="zen-web-panel-5" command="cmd_zenWebPanel5"/>
+  <key id="zen-web-panel-6" command="cmd_zenWebPanel6"/>
+  <key id="zen-web-panel-7" command="cmd_zenWebPanel7"/>
+  <key id="zen-web-panel-8" command="cmd_zenWebPanel8"/>
+  <key id="zen-web-panel-9" command="cmd_zenWebPanel9"/>
+#endif
   <key id="zen-glance-expand" key="O" modifiers="accel" command="cmd_zenGlanceExpand"/>
   <key id="zen-toggle-pin-tab" key="D" modifiers="accel,shift" command="cmd_zenTogglePinTab"/>
   <key id="zen-pinned-tab-reset-shortcut" command="cmd_zenPinnedTabReset"/>

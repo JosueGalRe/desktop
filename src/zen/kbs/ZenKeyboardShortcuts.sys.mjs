@@ -69,6 +69,11 @@ const ZEN_KEY_CATEGORIES = [
     keys: [
       ["zen-toggle-sidebar", "zen-sidebar-shortcut-toggle"],
       ["zen-library-toggle", "zen-library-shortcut-toggle"],
+      ["zen-web-panels-toggle", "zen-web-panels-shortcut-toggle"],
+      ...Array.from({ length: 9 }, (_, i) => [
+        `zen-web-panel-${i + 1}`,
+        `zen-web-panels-shortcut-open-${i + 1}`,
+      ]),
       ["zen-glance-expand", "zen-glance-expand"],
       ["zen-toggle-pin-tab", "zen-toggle-pin-tab-shortcut"],
       ["zen-pinned-tab-reset-shortcut", "zen-pinned-tab-shortcut-reset"],

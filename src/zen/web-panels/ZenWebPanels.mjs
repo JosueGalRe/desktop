@@ -136,6 +136,35 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
   }
 
   /**
+   * Shows the panel used last, or the first one; hides it if it's open.
+   */
+  toggleLast() {
+    if (this.activeBrowser) {
+      this.hide();
+      return;
+    }
+
+    const panels = ZenWebPanelsStore.getPanels();
+    const lastUsed = panels.find(panel => panel.id === this.#activeId);
+    const panel = lastUsed ?? panels[0];
+
+    if (panel) {
+      this.show(panel.id);
+    }
+  }
+
+  /**
+   * @param {number} index - The panel's position in the sidebar.
+   */
+  toggleIndex(index) {
+    const panel = ZenWebPanelsStore.getPanels()[index];
+
+    if (panel) {
+      this.toggle(panel.id);
+    }
+  }
+
+  /**
    * @param {string} id
    */
   show(id) {
