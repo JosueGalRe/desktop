@@ -106,3 +106,25 @@ add_task(function test_options_are_validated() {
   is(panel.unloadAfter, 15, "Including minutes");
   removeAllWebPanels();
 });
+
+add_task(function test_new_address_forgets_the_last_page() {
+  const panel = ZenWebPanelsStore.addPanel("https://example.com/", {
+    restoreLastPage: true,
+    lastURL: "https://example.com/inbox",
+  });
+
+  ZenWebPanelsStore.updatePanel(panel.id, { url: "example.com" });
+  is(
+    ZenWebPanelsStore.getPanel(panel.id).lastURL,
+    "https://example.com/inbox",
+    "The same address keeps the last page"
+  );
+
+  ZenWebPanelsStore.updatePanel(panel.id, { url: "https://example.org/" });
+  is(
+    ZenWebPanelsStore.getPanel(panel.id).lastURL,
+    "",
+    "A new address doesn't reopen the old site"
+  );
+  removeAllWebPanels();
+});

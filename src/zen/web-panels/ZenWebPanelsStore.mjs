@@ -220,6 +220,11 @@ export const ZenWebPanelsStore = {
 
     if (Object.hasOwn(changes, "url")) {
       next.url = this.normalizeURL(changes.url);
+
+      // The last page visited belongs to the old address.
+      if (next.url !== current.url) {
+        next.lastURL = "";
+      }
     }
 
     if (!isValidPanel(next)) {
