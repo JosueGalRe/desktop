@@ -1,5 +1,5 @@
 diff --git a/browser/base/content/browser.js b/browser/base/content/browser.js
-index 7ce8e235dd4dafde6ed1bfa8c81c4dc1409141f1..b2423a1d07c9dd4348fa16ef291ecc5a0aa389af 100644
+index 7f605e959f7bfb7fa72c98bc96dff9875914f6ad..7b13d852f8cbb0b80e5b65b1eebd7bdcbb9b3a08 100644
 --- a/browser/base/content/browser.js
 +++ b/browser/base/content/browser.js
 @@ -33,6 +33,7 @@ ChromeUtils.defineESModuleGetters(this, {
@@ -51,6 +51,15 @@ index 7ce8e235dd4dafde6ed1bfa8c81c4dc1409141f1..b2423a1d07c9dd4348fa16ef291ecc5a
        Tabbrowser.closingTabsEnum.ALL
      )
    );
+@@ -4470,7 +4476,7 @@ var PanicButtonNotifier = {
+ class TabDialogBox {
+   static _containerFor(browser) {
+     return browser.closest(
+-      ".browserSidebarContainer, .webextension-popup-stack, .sidebar-browser-stack"
++      ".browserSidebarContainer, .webextension-popup-stack, .sidebar-browser-stack, .zen-web-panel-container"
+     );
+   }
+ 
 @@ -4813,9 +4819,13 @@ var gDialogBox = {
      // Bring the window to the front in case we're minimized or occluded:
      window.focus();
@@ -79,7 +88,7 @@ index 7ce8e235dd4dafde6ed1bfa8c81c4dc1409141f1..b2423a1d07c9dd4348fa16ef291ecc5a
      }
      if (this._queued.length) {
        setTimeout(() => this._openNextDialog(), 0);
-@@ -5026,6 +5040,16 @@ var ConfirmationHint = {
+@@ -5028,6 +5042,16 @@ var ConfirmationHint = {
      }
  
      document.l10n.setAttributes(this._message, messageId, l10nArgs);

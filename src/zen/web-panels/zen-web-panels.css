@@ -115,6 +115,18 @@
   border-radius: calc(var(--zen-native-inner-radius) / var(--zen-squircle-value));
 }
 
+/* alert(), HTTP auth and other prompts cover the panel like they cover a tab:
+ * TabDialogBox positions its stack on the browser with this anchor. */
+#zen-web-panel browser[tabDialogShowing] {
+  -moz-user-focus: none !important;
+  anchor-name: --browser-with-dialog;
+}
+
+.zen-web-panel-container > .dialogStack > .dialogTemplate > .dialogBox {
+  /* A panel is about as narrow as Firefox's sidebar. */
+  margin-inline: 0;
+}
+
 .zen-web-panel-container browser {
   background: light-dark(rgb(255, 255, 255), rgb(32, 32, 32));
   color-scheme: env(-moz-content-preferred-color-scheme);

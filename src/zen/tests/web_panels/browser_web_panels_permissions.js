@@ -41,3 +41,32 @@ add_task(async function test_permission_prompt_shows_for_the_panel() {
   gZenWebPanels.hide();
   removeAllWebPanels();
 });
+
+add_task(async function test_content_prompts_cover_the_panel() {
+  const { PromptTestUtils } = ChromeUtils.importESModule(
+    "resource://testing-common/PromptTestUtils.sys.mjs"
+  );
+  const { browser } = await openWebPanel("https://example.com/");
+
+  const promptShown = PromptTestUtils.waitForPrompt(browser, {
+    modalType: Services.prompt.MODAL_TYPE_CONTENT,
+    promptType: "alert",
+  });
+  await SpecialPowers.spawn(browser, [], () => {
+    content.setTimeout(() => content.alert("Hi from the panel"), 0);
+  });
+  const dialog = await promptShown;
+
+  const stack = browser.parentElement.querySelector(".content-prompt-dialog");
+  const panelBounds = browser.getBoundingClientRect();
+  const stackBounds = stack.getBoundingClientRect();
+  ok(
+    Math.abs(stackBounds.left - panelBounds.left) < 1 &&
+      Math.abs(stackBounds.right - panelBounds.right) < 1,
+    "The prompt covers the panel, not the tab"
+  );
+
+  await PromptTestUtils.handlePrompt(dialog, { buttonNumClick: 0 });
+  gZenWebPanels.hide();
+  removeAllWebPanels();
+});
