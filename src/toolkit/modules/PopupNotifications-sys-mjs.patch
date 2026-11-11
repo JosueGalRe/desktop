@@ -1,8 +1,57 @@
 diff --git a/toolkit/modules/PopupNotifications.sys.mjs b/toolkit/modules/PopupNotifications.sys.mjs
-index 5e88f279e570edbf95823bb9dc9835bae89feb32..f50db584dff740583665239d2cc2c5d00c5010e9 100644
+index 38490ae2aba2d6841bf11057f8ca2db8094050d4..c2bfd4a9d24169f65b1983fd15cab93fbe14f89b 100644
 --- a/toolkit/modules/PopupNotifications.sys.mjs
 +++ b/toolkit/modules/PopupNotifications.sys.mjs
-@@ -1532,6 +1532,15 @@ PopupNotifications.prototype = {
+@@ -832,14 +832,13 @@ PopupNotifications.prototype = {
+     if (!suppress) {
+       // If notifications are not suppressed, always update the visibility.
+       this._suppress = false;
+-      let notifications = this.getNotificationsForBrowser(
+-        this.tabbrowser.selectedBrowser
+-      );
++      let browser = this._activeBrowser;
++      let notifications = this.getNotificationsForBrowser(browser);
+       this._update(
+         notifications,
+         this._getAnchorsForNotifications(
+           notifications,
+-          getAnchorFromBrowser(this.tabbrowser.selectedBrowser)
++          getAnchorFromBrowser(browser)
+         )
+       );
+       return;
+@@ -941,11 +940,28 @@ PopupNotifications.prototype = {
+    * Gets notifications for the currently selected browser.
+    */
+   get _currentNotifications() {
+-    return this.tabbrowser.selectedBrowser
+-      ? this.getNotificationsForBrowser(this.tabbrowser.selectedBrowser)
++    return this._activeBrowser
++      ? this.getNotificationsForBrowser(this._activeBrowser)
+       : [];
+   },
+ 
++  /**
++   * The browser whose notifications are shown: the visible Zen web panel
++   * while it has one that isn't dismissed, otherwise the selected tab.
++   */
++  get _activeBrowser() {
++    let panelBrowser = this.window.gZenWebPanels?.activeBrowser;
++    if (
++      panelBrowser &&
++      this.getNotificationsForBrowser(panelBrowser).some(
++        n => !n.dismissed || n.options.persistent
++      )
++    ) {
++      return panelBrowser;
++    }
++    return this.tabbrowser.selectedBrowser;
++  },
++
+   _remove: function PopupNotifications_removeHelper(
+     notification,
+     withoutUserResponse = false
+@@ -1599,6 +1615,15 @@ PopupNotifications.prototype = {
    ) {
      for (let anchorElement of anchorElements) {
        anchorElement.setAttribute(ICON_ATTRIBUTE_SHOWING, "true");
@@ -18,7 +67,7 @@ index 5e88f279e570edbf95823bb9dc9835bae89feb32..f50db584dff740583665239d2cc2c5d0
      }
    },
  
-@@ -1668,6 +1677,10 @@ PopupNotifications.prototype = {
+@@ -1668,6 +1693,10 @@ PopupNotifications.prototype = {
        // Sidebar browser is always active for its notifications
        return true;
      }

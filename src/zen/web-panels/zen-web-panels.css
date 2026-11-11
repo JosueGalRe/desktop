@@ -123,8 +123,12 @@
 }
 
 #zen-web-panel-notification-anchor {
-  width: 0;
-  height: 16px;
+  list-style-image: url("chrome://browser/skin/zen-icons/permissions.svg");
+
+  /* PopupNotifications marks it while the panel has a request. */
+  &:not([showing]) {
+    display: none;
+  }
 }
 
 .zen-web-panel-browsers {

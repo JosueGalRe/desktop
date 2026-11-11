@@ -211,6 +211,8 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
     const hadFocus = this.#host.contains(document.activeElement);
     this.#host.hidden = true;
     this.#updateSidebar();
+    // The panel's prompts hide with it, and the tab's come back.
+    PopupNotifications.anchorVisibilityChange();
 
     if (hadFocus) {
       gBrowser.selectedBrowser.focus();
@@ -556,6 +558,35 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
     this.#host.style.width = `${this.#clampWidth(width)}px`;
     this.#host.toggleAttribute("floating", panel.floating);
     this.#host.toggleAttribute("hide-header", panel.hideHeader);
+
+    // Permission prompts point at the header, or at the top of the page
+    // while the header is hidden, and show again with their panel.
+    this.#activeEntry.browser.popupnotificationanchor = document.getElementById(
+      panel.hideHeader
+        ? "zen-web-panel-notification-fallback"
+        : "zen-web-panel-notification-anchor"
+    );
+    PopupNotifications.anchorVisibilityChange();
+    this.#updatePermissionAnchor();
+  }
+
+  /**
+   * Shows the header button that brings back the visible panel's permission
+   * requests while it has any. PopupNotifications marks the button when a
+   * request shows, but only clears the marks of anchors in the urlbar.
+   */
+  #updatePermissionAnchor() {
+    const browser = this.activeBrowser;
+
+    document
+      .getElementById("zen-web-panel-notification-anchor")
+      .toggleAttribute(
+        "showing",
+        Boolean(
+          browser &&
+          PopupNotifications.getNotificationsForBrowser(browser).length
+        )
+      );
   }
 
   #applyZoom(entry) {
@@ -686,6 +717,12 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
   }
 
   #onPopupHidden(event) {
+    // A request was answered or put away.
+    if (event.target.id === "notification-popup") {
+      this.#updatePermissionAnchor();
+      return;
+    }
+
     if (!this.#sidebarPopups.delete(event.target)) {
       return;
     }
@@ -756,7 +793,7 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
           <toolbarbutton id="zen-web-panel-reload" class="toolbarbutton-1" data-l10n-id="zen-web-panel-reload"/>
           <image id="zen-web-panel-icon"/>
           <label id="zen-web-panel-title" crop="end" flex="1"/>
-          <image id="zen-web-panel-notification-anchor"/>
+          <toolbarbutton id="zen-web-panel-notification-anchor" class="toolbarbutton-1" data-l10n-id="zen-web-panel-permissions"/>
           <toolbarbutton id="zen-web-panel-more" class="toolbarbutton-1" type="menu" data-l10n-id="zen-web-panel-more">
             <menupopup id="zen-web-panel-more-menu">
               <menuitem id="zen-web-panel-open-in-tab" data-l10n-id="zen-web-panel-open-in-tab"/>
@@ -770,7 +807,10 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
           </toolbarbutton>
           <toolbarbutton id="zen-web-panel-close" class="toolbarbutton-1" data-l10n-id="zen-web-panel-close"/>
         </hbox>
-        <vbox class="zen-web-panel-browsers" flex="1"/>
+        <vbox class="zen-web-panel-browsers" flex="1">
+          <!-- Permission prompts point here while the header is hidden. -->
+          <box id="zen-web-panel-notification-fallback"/>
+        </vbox>
       </vbox>
     `).firstElementChild;
 
@@ -780,6 +820,12 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
       "zen-web-panel-forward": entry => entry.browser.goForward(),
       "zen-web-panel-reload": entry => entry.browser.reload(),
       "zen-web-panel-close": () => this.hide(),
+      // Shown by PopupNotifications while the panel has a request.
+      "zen-web-panel-notification-anchor": entry =>
+        PopupNotifications._reshowNotifications(
+          document.getElementById("zen-web-panel-notification-anchor"),
+          entry.browser
+        ),
       "zen-web-panel-open-in-tab": entry => {
         gBrowser.selectedTab = gBrowser.addTab(entry.browser.currentURI.spec, {
           triggeringPrincipal: entry.browser.contentPrincipal,
@@ -1355,23 +1401,33 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
     container.appendChild(browser);
     this.#host.querySelector(".zen-web-panel-browsers").appendChild(container);
 
-    // Permission prompts from the panel point at its header, not the urlbar.
-    browser.popupnotificationanchor = document.getElementById(
-      "zen-web-panel-notification-anchor"
-    );
-
     const entry = { panel, container, browser };
     entry.listener = {
       QueryInterface: ChromeUtils.generateQI([
         "nsIWebProgressListener",
         "nsISupportsWeakReference",
       ]),
-      onLocationChange: (webProgress, request, uri) => {
+      onLocationChange: (webProgress, request, uri, flags) => {
         this.#watchAudio(entry);
         this.#applyZoom(entry);
 
         if (webProgress?.isTopLevel) {
           this.#rememberPage(entry, uri);
+        }
+
+        // Requests from the previous page go away, like they do for tabs.
+        // PopupNotifications is lazy: there's nothing to clear before it's
+        // been created.
+        if (
+          webProgress?.isTopLevel &&
+          !(flags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT) &&
+          !Object.getOwnPropertyDescriptor(window, "PopupNotifications").get
+        ) {
+          PopupNotifications.locationChange(browser);
+
+          if (entry === this.#activeEntry) {
+            this.#updatePermissionAnchor();
+          }
         }
 
         if (entry === this.#activeEntry) {
