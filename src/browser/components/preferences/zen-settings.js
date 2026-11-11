@@ -736,7 +736,9 @@ var gZenWorkspacesSettings = {
 
     toggleZenCycleByAttrWarning.observe(); // call it once on initial load
 
+
     Services.prefs.addObserver("zen.glance.enabled", tabsUnloaderPrefListener); // We can use the same listener for both prefs
+    Services.prefs.addObserver("zen.web-panels.enabled", tabsUnloaderPrefListener);
     Services.prefs.addObserver("zen.workspaces.separate-essentials", tabsUnloaderPrefListener);
     Services.prefs.addObserver("zen.window-sync.sync-only-pinned-tabs", tabsUnloaderPrefListener);
     Services.prefs.addObserver(
@@ -746,6 +748,7 @@ var gZenWorkspacesSettings = {
     Services.prefs.addObserver("browser.ctrlTab.sortByRecentlyUsed", toggleZenCycleByAttrWarning);
     window.addEventListener("unload", () => {
       Services.prefs.removeObserver("zen.glance.enabled", tabsUnloaderPrefListener);
+      Services.prefs.removeObserver("zen.web-panels.enabled", tabsUnloaderPrefListener);
       Services.prefs.removeObserver("zen.workspaces.separate-essentials", tabsUnloaderPrefListener);
       Services.prefs.removeObserver(
         "zen.window-sync.sync-only-pinned-tabs",
@@ -763,7 +766,13 @@ var gZenWorkspacesSettings = {
   },
 };
 
+
 Preferences.addAll([
+  {
+    id: "zen.web-panels.enabled",
+    type: "bool",
+    default: true,
+  },
   {
     id: "zen.view.compact.toolbar-flash-popup",
     type: "bool",

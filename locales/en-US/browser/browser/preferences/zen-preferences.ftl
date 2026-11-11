@@ -21,6 +21,11 @@ sync-engine-workspaces =
     .tooltiptext = Sync your workspaces across devices
     .accesskey = W
 
+zen-web-panels-settings-header = Web Panels
+zen-web-panels-settings-description = Keep sites open next to your tabs. Add and edit them from the web panels sidebar; each one runs in its own sandboxed content process, just like a tab.
+zen-web-panels-settings-enabled =
+    .label = Enable web panels
+
 zen-glance-title = Glance
 zen-glance-header = General settings for glance
 zen-glance-description = Get a quick overview of your links without opening them in a new tab
