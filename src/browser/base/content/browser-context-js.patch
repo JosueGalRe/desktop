@@ -1,0 +1,15 @@
+diff --git a/browser/base/content/browser-context.js b/browser/base/content/browser-context.js
+index 2e617f91b92b92651b6a94fa37ccd5f7e0db8397..46e830cbb402e0abb691e60d0ad75d7149b556e2 100644
+--- a/browser/base/content/browser-context.js
++++ b/browser/base/content/browser-context.js
+@@ -322,8 +322,8 @@ document.addEventListener(
+         case "context-sendpagetodevice-popup":
+           gSync.populateSendTabToDevicesMenu(
+             event.target,
+-            gBrowser.currentURI,
+-            gBrowser.contentTitle,
++            gContextMenu.browser.currentURI,
++            gContextMenu.browser.contentTitle,
+             {
+               contextMenuType: "page",
+             }

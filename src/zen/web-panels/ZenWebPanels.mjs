@@ -104,6 +104,7 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
     );
 
     window.delayedStartupPromise.then(() => {
+      this.#insertContextMenuItems();
       gBrowser.addProgressListener({
         onLocationChange: () => this.#onSelectedLocationChange(),
       });
@@ -1200,6 +1201,91 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
    */
   #badgeFor(title) {
     return /^\((\d+)\+?\)/.exec(title ?? "")?.[1] ?? "";
+  }
+
+  /**
+   * Tab, page and link context menu entries. The page and link ones are shown
+   * by nsContextMenu (see nsContextMenu-sys-mjs.patch).
+   */
+  #insertContextMenuItems() {
+    const items = [
+      {
+        id: "context-zenOpenLinkInWebPanel",
+        l10n: "zen-web-panels-context-open-link",
+        after: "context-zenOpenLinkInGlance",
+        before: "context-sep-open",
+        command: () =>
+          this.addPage(gContextMenu.linkURL, containerOf(gContextMenu.browser)),
+      },
+      {
+        id: "context-zenOpenLinkInTemporaryWebPanel",
+        l10n: "zen-web-panels-context-open-link-temporary",
+        after: "context-zenOpenLinkInWebPanel",
+        before: "context-sep-open",
+        command: () =>
+          this.openTemporary(
+            gContextMenu.linkURL,
+            containerOf(gContextMenu.browser)
+          ),
+      },
+      {
+        id: "context-zenAddPageToWebPanels",
+        l10n: "zen-web-panels-context-add-page",
+        after: "context-savepage",
+        command: () =>
+          this.addPage(
+            gContextMenu.browser.currentURI.spec,
+            containerOf(gContextMenu.browser)
+          ),
+      },
+      {
+        id: "context_zenAddTabToWebPanels",
+        l10n: "tab-context-zen-add-to-web-panels",
+        after: "context_zen-add-essential",
+        before: "context_pinTab",
+        command: () => {
+          const tab = TabContextMenu.contextTab;
+          const tabs = tab.multiselected ? gBrowser.selectedTabs : [tab];
+
+          for (const { linkedBrowser, userContextId } of tabs) {
+            this.addPage(linkedBrowser.currentURI.spec, userContextId);
+          }
+        },
+      },
+    ];
+
+    for (const { id, l10n, after, before, command } of items) {
+      const item = document.createXULElement("menuitem");
+      item.id = id;
+      item.hidden = true;
+      document.l10n.setAttributes(item, l10n);
+      item.addEventListener("command", command);
+
+      // The Zen anchors are missing when Glance or Essentials are disabled.
+      const anchor = document.getElementById(after);
+
+      if (anchor) {
+        anchor.after(item);
+      } else {
+        document.getElementById(before).before(item);
+      }
+    }
+
+    const tabMenu = document.getElementById("tabContextMenu");
+
+    tabMenu.addEventListener("popupshowing", event => {
+      if (event.target !== tabMenu) {
+        return;
+      }
+
+      const tab = TabContextMenu.contextTab;
+      const tabs = tab.multiselected ? gBrowser.selectedTabs : [tab];
+
+      document.getElementById("context_zenAddTabToWebPanels").hidden =
+        !tabs.some(({ linkedBrowser }) =>
+          ZenWebPanelsStore.isAllowedURL(linkedBrowser.currentURI.spec)
+        );
+    });
   }
 
   #iconFor(panel) {

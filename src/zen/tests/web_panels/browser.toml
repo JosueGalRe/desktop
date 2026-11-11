@@ -6,6 +6,7 @@
 support-files = [
   "head.js",
   "file_web_panels_badge.html",
+  "file_web_panels_link.html",
   "file_web_panels_media.html",
   "file_web_panels_permission.html",
   "file_web_panels_tone.wav",
@@ -14,6 +15,8 @@ support-files = [
 ["browser_web_panels_commands.js"]
 
 ["browser_web_panels_container.js"]
+
+["browser_web_panels_context_menu.js"]
 
 ["browser_web_panels_options.js"]
 
