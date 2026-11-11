@@ -125,8 +125,11 @@ export class nsZenWebPanelsEditor {
       )
       .join("");
 
+    // It doesn't follow its anchor: saving re-renders the sidebar items and
+    // "Hide the toolbar" hides the header button, and an arrow panel closes
+    // when the node it follows goes away.
     const popup = window.MozXULElement.parseXULToFragment(`
-      <panel id="zen-web-panels-editor" type="arrow" orient="vertical">
+      <panel id="zen-web-panels-editor" type="arrow" orient="vertical" followanchor="false">
         <vbox class="zen-web-panels-editor-body">
           <hbox class="zen-web-panels-editor-identity" align="center">
             <toolbarbutton class="toolbarbutton-1 zen-web-panels-editor-icon"

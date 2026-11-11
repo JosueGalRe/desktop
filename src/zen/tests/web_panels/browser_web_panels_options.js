@@ -77,6 +77,39 @@ add_task(async function test_editor_saves_options() {
   removeAllWebPanels();
 });
 
+add_task(async function test_editor_stays_open_while_editing() {
+  const { panel } = await openWebPanel("https://example.com/");
+  const popup = () => document.getElementById("zen-web-panels-editor");
+  const settle = () =>
+    new Promise(resolve =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve))
+    );
+  const open = async anchor => {
+    gZenWebPanels.edit(panel.id, anchor);
+    await TestUtils.waitForCondition(() => popup()?.state === "open");
+  };
+
+  await open();
+  popup().querySelector('checkbox[option="mobile"]').click();
+  await settle();
+  is(popup().state, "open", "Saving re-renders the sidebar, not the editor");
+
+  let hidden = BrowserTestUtils.waitForEvent(popup(), "popuphidden");
+  popup().hidePopup();
+  await hidden;
+
+  await open(document.getElementById("zen-web-panel-more"));
+  popup().querySelector('checkbox[option="hideHeader"]').click();
+  await settle();
+  is(popup().state, "open", "Hiding the header it opened from keeps it too");
+
+  hidden = BrowserTestUtils.waitForEvent(popup(), "popuphidden");
+  popup().hidePopup();
+  await hidden;
+  gZenWebPanels.hide();
+  removeAllWebPanels();
+});
+
 add_task(async function test_floating_panel_closes_on_outside_click() {
   await BrowserTestUtils.withNewTab(
     "https://example.org/",
