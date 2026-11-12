@@ -656,6 +656,10 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
   #rememberPage(entry, uri) {
     const spec = uri?.spec;
 
+    // Sites like Gmail change the URL constantly; save once it settles,
+    // and not at all if it settles back on the saved page.
+    clearTimeout(entry.lastURLTimer);
+
     if (
       !entry.panel.restoreLastPage ||
       this.#temporaryPanels.has(entry.panel.id) ||
@@ -665,8 +669,6 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
       return;
     }
 
-    // Sites like Gmail change the URL constantly; save once it settles.
-    clearTimeout(entry.lastURLTimer);
     entry.lastURLTimer = setTimeout(
       () => ZenWebPanelsStore.updatePanel(entry.panel.id, { lastURL: spec }),
       LAST_URL_SAVE_DELAY_MS

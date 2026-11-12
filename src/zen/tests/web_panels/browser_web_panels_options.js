@@ -521,3 +521,44 @@ add_task(async function test_editing_the_visible_panel_keeps_the_focus() {
   gZenWebPanels.hide();
   removeAllWebPanels();
 });
+
+add_task(async function test_last_page_ignores_a_quick_round_trip() {
+  // History entries need user interaction to be gone back to otherwise.
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.navigation.requireUserInteraction", false]],
+  });
+  const { panel, browser } = await openWebPanel("https://example.com/", {
+    restoreLastPage: true,
+  });
+  await TestUtils.waitForCondition(
+    () =>
+      ZenWebPanelsStore.getPanel(panel.id).lastURL === "https://example.com/",
+    "The first page is remembered"
+  );
+
+  const away = BrowserTestUtils.browserLoaded(
+    browser,
+    false,
+    "https://example.org/"
+  );
+  browser.loadURI(Services.io.newURI("https://example.org/"), {
+    triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal({}),
+  });
+  await away;
+  browser.goBack();
+  await TestUtils.waitForCondition(
+    () => browser.currentURI.spec === "https://example.com/"
+  );
+
+  // Longer than the delay before a page is saved.
+  // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  is(
+    ZenWebPanelsStore.getPanel(panel.id).lastURL,
+    "https://example.com/",
+    "A page left before it was saved isn't saved later"
+  );
+
+  gZenWebPanels.hide();
+  removeAllWebPanels();
+});
