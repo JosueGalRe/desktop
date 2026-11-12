@@ -201,12 +201,14 @@ add_task(async function test_unload_after_inactivity() {
 });
 
 add_task(async function test_periodic_reload() {
-  await withShortMinutes(async () => {
-    const { browser } = await openWebPanel("https://example.com/", {
-      reloadEvery: 1,
-    });
+  // Set once loaded: reloading every shortened minute, the first load is
+  // hard to catch.
+  const { panel, browser } = await openWebPanel("https://example.com/");
 
-    await BrowserTestUtils.browserLoaded(browser);
+  await withShortMinutes(async () => {
+    const reloaded = BrowserTestUtils.browserLoaded(browser);
+    ZenWebPanelsStore.updatePanel(panel.id, { reloadEvery: 1 });
+    await reloaded;
     ok(true, "The panel reloads on its own");
   });
 
