@@ -1,0 +1,22 @@
+diff --git a/browser/actors/PromptParent.sys.mjs b/browser/actors/PromptParent.sys.mjs
+index e3694b8418faea9b38bf4304dea1764132c7c07c..1b1f3c05c6fd879073505fa9cbcfea547b80cffa 100644
+--- a/browser/actors/PromptParent.sys.mjs
++++ b/browser/actors/PromptParent.sys.mjs
+@@ -285,10 +285,13 @@ export class PromptParent extends JSWindowActorParent {
+             if (browser == win.gBrowser.selectedBrowser) {
+               win.gURLBar.setURI();
+             }
+-            win.gBrowser.setTabLabelForAuthPrompts(
+-              targetTab,
+-              currentLocationsTabLabel
+-            );
++            // Zen web panels have no tab to label.
++            if (targetTab) {
++              win.gBrowser.setTabLabelForAuthPrompts(
++                targetTab,
++                currentLocationsTabLabel
++              );
++            }
+           }
+           this.unregisterPrompt(promptID);
+         }

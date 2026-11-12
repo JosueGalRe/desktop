@@ -162,3 +162,34 @@ add_task(async function test_permission_prompt_without_the_header() {
   gZenWebPanels.hide();
   removeAllWebPanels();
 });
+add_task(async function test_http_auth_in_a_panel() {
+  const { PromptTestUtils } = ChromeUtils.importESModule(
+    "resource://testing-common/PromptTestUtils.sys.mjs"
+  );
+  const panel = ZenWebPanelsStore.addPanel(
+    TEST_ROOT + "file_web_panels_auth.sjs"
+  );
+
+  gZenWebPanels.show(panel.id);
+  const browser = gZenWebPanels.activeBrowser;
+  const dialog = await PromptTestUtils.waitForPrompt(browser, {
+    modalType: Services.prompt.MODAL_TYPE_TAB,
+    promptType: "promptUserAndPass",
+  });
+  await PromptTestUtils.handlePrompt(dialog, {
+    loginInput: "zen",
+    passwordInput: "panel",
+    buttonNumClick: 0,
+  });
+  await TestUtils.waitForCondition(
+    () => browser.contentTitle === "authenticated",
+    "The credentials reach the page"
+  );
+
+  PopupNotifications.getNotification("password", browser)?.remove();
+  Cc["@mozilla.org/network/http-auth-manager;1"]
+    .getService(Ci.nsIHttpAuthManager)
+    .clearAll();
+  gZenWebPanels.hide();
+  removeAllWebPanels();
+});

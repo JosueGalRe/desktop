@@ -5,6 +5,7 @@
 [DEFAULT]
 support-files = [
   "head.js",
+  "file_web_panels_auth.sjs",
   "file_web_panels_badge.html",
   "file_web_panels_link.html",
   "file_web_panels_media.html",
