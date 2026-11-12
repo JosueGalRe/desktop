@@ -226,3 +226,61 @@ add_task(async function test_http_auth_in_a_panel() {
   gZenWebPanels.hide();
   removeAllWebPanels();
 });
+
+add_task(async function test_tab_icons_with_a_panel_request_pending() {
+  const shown = BrowserTestUtils.waitForEvent(
+    PopupNotifications.panel,
+    "popupshown"
+  );
+  const { browser } = await openWebPanel(
+    TEST_ROOT + "file_web_panels_permission.html"
+  );
+  await shown;
+
+  const icon = document.getElementById("geo-notification-icon");
+  const settle = async () => {
+    await TestUtils.waitForTick();
+    await TestUtils.waitForTick();
+  };
+  const firstTab = gBrowser.selectedTab;
+  const tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    "https://example.org/"
+  );
+  // Only its urlbar icon: the panel's prompt stays in front.
+  const tabNotification = PopupNotifications.show(
+    tab.linkedBrowser,
+    "zen-web-panels-test",
+    "The tab's own request",
+    "geo-notification-icon",
+    { label: "OK", accessKey: "O", callback() {} },
+    null,
+    { dismissed: true }
+  );
+  await settle();
+  ok(icon.hasAttribute("showing"), "The tab shows its request's icon");
+
+  gBrowser.selectedTab = firstTab;
+  await settle();
+  ok(!icon.hasAttribute("showing"), "Another tab doesn't show it");
+
+  gBrowser.selectedTab = tab;
+  await settle();
+  ok(icon.hasAttribute("showing"), "Coming back shows it again");
+  is(
+    PopupNotifications.panel.state,
+    "open",
+    "With the panel's prompt still open"
+  );
+
+  tabNotification.remove();
+  BrowserTestUtils.removeTab(tab);
+  const hidden = BrowserTestUtils.waitForEvent(
+    PopupNotifications.panel,
+    "popuphidden"
+  );
+  PopupNotifications.getNotification("webRTC-shareDevices", browser).remove();
+  await hidden;
+  gZenWebPanels.hide();
+  removeAllWebPanels();
+});
