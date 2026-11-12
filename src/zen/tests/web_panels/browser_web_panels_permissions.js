@@ -367,3 +367,41 @@ add_task(async function test_panel_prompts_and_fullscreen() {
   removeAllWebPanels();
   await SpecialPowers.popPrefEnv();
 });
+
+add_task(async function test_panel_request_removal_keeps_the_tab_icons() {
+  const { browser } = await openWebPanel("https://example.com/");
+  const icon = document.getElementById("geo-notification-icon");
+  const action = { label: "OK", accessKey: "O", callback() {} };
+
+  const tabNotification = PopupNotifications.show(
+    gBrowser.selectedBrowser,
+    "zen-web-panels-tab-test",
+    "The tab's own request",
+    "geo-notification-icon",
+    action,
+    null,
+    { dismissed: true }
+  );
+  // Not persistent, like saving a password.
+  const panelNotification = PopupNotifications.show(
+    browser,
+    "zen-web-panels-test",
+    "The panel's request",
+    null,
+    action,
+    null,
+    { dismissed: true }
+  );
+  ok(icon.hasAttribute("showing"), "The tab shows its request's icon");
+
+  panelNotification.remove();
+  await TestUtils.waitForTick();
+  ok(
+    icon.hasAttribute("showing"),
+    "Removing the panel's request keeps the tab's icon"
+  );
+
+  tabNotification.remove();
+  gZenWebPanels.hide();
+  removeAllWebPanels();
+});

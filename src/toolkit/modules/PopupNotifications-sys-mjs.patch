@@ -1,5 +1,5 @@
 diff --git a/toolkit/modules/PopupNotifications.sys.mjs b/toolkit/modules/PopupNotifications.sys.mjs
-index 38490ae2aba2d6841bf11057f8ca2db8094050d4..c85db4a452e61cffc7cff0bb223d09bf654d6a60 100644
+index 38490ae2aba2d6841bf11057f8ca2db8094050d4..00be1130cae6cd963fad1fecaf974428521cd39d 100644
 --- a/toolkit/modules/PopupNotifications.sys.mjs
 +++ b/toolkit/modules/PopupNotifications.sys.mjs
 @@ -320,6 +320,8 @@ export function PopupNotifications(tabbrowser, panel, iconBox, options = {}) {
@@ -29,7 +29,20 @@ index 38490ae2aba2d6841bf11057f8ca2db8094050d4..c85db4a452e61cffc7cff0bb223d09bf
          )
        );
        return;
-@@ -941,11 +942,28 @@ PopupNotifications.prototype = {
+@@ -878,6 +879,12 @@ PopupNotifications.prototype = {
+     });
+ 
+     if (activeBrowser) {
++      // Zen: a web panel's requests are only current while it has some, so
++      // its last one going falls back to the selected tab's.
++      if (activeBrowser != this.tabbrowser.selectedBrowser) {
++        this._update();
++        return;
++      }
+       let browserNotifications = this.getNotificationsForBrowser(activeBrowser);
+       this._update(browserNotifications);
+     }
+@@ -941,11 +948,28 @@ PopupNotifications.prototype = {
     * Gets notifications for the currently selected browser.
     */
    get _currentNotifications() {
@@ -60,7 +73,7 @@ index 38490ae2aba2d6841bf11057f8ca2db8094050d4..c85db4a452e61cffc7cff0bb223d09bf
    _remove: function PopupNotifications_removeHelper(
      notification,
      withoutUserResponse = false
-@@ -1500,6 +1518,16 @@ PopupNotifications.prototype = {
+@@ -1500,6 +1524,16 @@ PopupNotifications.prototype = {
        notifications = this._currentNotifications;
      }
  
@@ -77,7 +90,7 @@ index 38490ae2aba2d6841bf11057f8ca2db8094050d4..c85db4a452e61cffc7cff0bb223d09bf
      let haveNotifications = !!notifications.length;
      if (!anchors.size && haveNotifications) {
        anchors = this._getAnchorsForNotifications(notifications);
-@@ -1599,6 +1627,15 @@ PopupNotifications.prototype = {
+@@ -1599,6 +1633,15 @@ PopupNotifications.prototype = {
    ) {
      for (let anchorElement of anchorElements) {
        anchorElement.setAttribute(ICON_ATTRIBUTE_SHOWING, "true");
@@ -93,7 +106,7 @@ index 38490ae2aba2d6841bf11057f8ca2db8094050d4..c85db4a452e61cffc7cff0bb223d09bf
      }
    },
  
-@@ -1668,6 +1705,10 @@ PopupNotifications.prototype = {
+@@ -1668,6 +1711,10 @@ PopupNotifications.prototype = {
        // Sidebar browser is always active for its notifications
        return true;
      }
