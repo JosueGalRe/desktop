@@ -464,6 +464,42 @@ add_task(async function test_sound_indicator_and_mute() {
   removeAllWebPanels();
 });
 
+add_task(async function test_sound_indicator_in_right_to_left() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["media.autoplay.default", 0],
+      ["media.volume_scale", "0.0"],
+    ],
+  });
+  const originalDir = document.documentElement.getAttribute("dir");
+  const { panel, browser } = await openWebPanel(
+    TEST_ROOT + "file_web_panels_media.html"
+  );
+  const item = sidebarItemFor(panel);
+
+  document.documentElement.setAttribute("dir", "rtl");
+  await TestUtils.waitForCondition(() => item.hasAttribute("soundplaying"));
+  // The indicator sits at the inline end: the left side here.
+  const { height } = item.getBoundingClientRect();
+  EventUtils.synthesizeMouse(item, 4, height - 4, {});
+  await TestUtils.waitForCondition(
+    () => browser.browsingContext.mediaController.isMuted,
+    "Clicking it mutes the panel"
+  );
+  is(gZenWebPanels.activeBrowser, browser, "Without closing it");
+
+  if (originalDir) {
+    document.documentElement.setAttribute("dir", originalDir);
+  } else {
+    document.documentElement.removeAttribute("dir");
+  }
+
+  browser.browsingContext.mediaController.pause("user");
+  gZenWebPanels.hide();
+  removeAllWebPanels();
+  await SpecialPowers.popPrefEnv();
+});
+
 add_task(async function test_panel_audio_with_media_controls_off() {
   await SpecialPowers.pushPrefEnv({
     set: [

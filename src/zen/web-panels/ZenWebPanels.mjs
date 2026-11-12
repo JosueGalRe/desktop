@@ -1164,9 +1164,13 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
     }
 
     const bounds = item.getBoundingClientRect();
+    // It sits at the inline end: the left side in right-to-left layouts.
+    const atInlineEnd =
+      getComputedStyle(item).direction === "rtl"
+        ? event.clientX <= bounds.left + SOUND_INDICATOR_SIZE
+        : event.clientX >= bounds.right - SOUND_INDICATOR_SIZE;
     const inIndicator =
-      event.clientX >= bounds.right - SOUND_INDICATOR_SIZE &&
-      event.clientY >= bounds.bottom - SOUND_INDICATOR_SIZE;
+      atInlineEnd && event.clientY >= bounds.bottom - SOUND_INDICATOR_SIZE;
 
     if (!inIndicator) {
       return;
