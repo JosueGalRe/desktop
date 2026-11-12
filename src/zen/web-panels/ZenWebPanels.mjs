@@ -1648,11 +1648,13 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
     const startX = event.screenX;
     const startWidth = this.#host.getBoundingClientRect().width;
 
-    // The panel grows toward the content: leftward on the right, rightward on the left.
+    // The panel grows toward its resizer, whichever side and direction.
+    const hostBounds = this.#host.getBoundingClientRect();
     const direction =
-      document.documentElement.getAttribute("zen-right-side") === "true"
-        ? 1
-        : -1;
+      resizer.getBoundingClientRect().left <
+      hostBounds.left + hostBounds.width / 2
+        ? -1
+        : 1;
     let width = startWidth;
 
     const onMove = moveEvent => {

@@ -562,3 +562,39 @@ add_task(async function test_last_page_ignores_a_quick_round_trip() {
   gZenWebPanels.hide();
   removeAllWebPanels();
 });
+
+add_task(async function test_resizer_widens_toward_its_side() {
+  await openWebPanel("https://example.com/");
+  const resizer = host().querySelector(".zen-web-panel-resizer");
+  const originalDir = document.documentElement.getAttribute("dir");
+
+  for (const dir of ["ltr", "rtl"]) {
+    document.documentElement.setAttribute("dir", dir);
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
+    const hostBounds = host().getBoundingClientRect();
+    const bounds = resizer.getBoundingClientRect();
+    const outward =
+      bounds.left < hostBounds.left + hostBounds.width / 2 ? -40 : 40;
+    const x = bounds.width / 2;
+    const y = bounds.height / 2;
+
+    EventUtils.synthesizeMouse(resizer, x, y, { type: "mousedown" });
+    EventUtils.synthesizeMouse(resizer, x + outward, y, { type: "mousemove" });
+    EventUtils.synthesizeMouse(resizer, x + outward, y, { type: "mouseup" });
+    Assert.greater(
+      host().getBoundingClientRect().width,
+      hostBounds.width,
+      `Dragging the resizer outward widens the panel (${dir})`
+    );
+  }
+
+  if (originalDir) {
+    document.documentElement.setAttribute("dir", originalDir);
+  } else {
+    document.documentElement.removeAttribute("dir");
+  }
+
+  gZenWebPanels.hide();
+  removeAllWebPanels();
+});
