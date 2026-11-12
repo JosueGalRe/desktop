@@ -118,3 +118,55 @@ add_task(async function test_panel_page_can_go_fullscreen() {
   removeAllWebPanels();
   await SpecialPowers.popPrefEnv();
 });
+add_task(async function test_navigation_keys_when_the_tab_cant_navigate() {
+  // History entries need user interaction to be gone back to otherwise.
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.navigation.requireUserInteraction", false]],
+  });
+  await BrowserTestUtils.withNewTab("about:blank", async tabBrowser => {
+    const { browser } = await openWebPanel("https://example.com/");
+    const loaded = BrowserTestUtils.browserLoaded(
+      browser,
+      false,
+      "https://example.org/"
+    );
+    browser.loadURI(Services.io.newURI("https://example.org/"), {
+      triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal(
+        {}
+      ),
+    });
+    await loaded;
+
+    const disabled = id => document.getElementById(id).hasAttribute("disabled");
+    tabBrowser.focus();
+    ok(
+      disabled("Browser:Back") && disabled("Browser:Reload"),
+      "The blank tab can't go back or reload"
+    );
+
+    browser.focus();
+    if (AppConstants.platform == "macosx") {
+      EventUtils.synthesizeKey("[", { accelKey: true });
+    } else {
+      EventUtils.synthesizeKey("KEY_ArrowLeft", { altKey: true });
+    }
+    await TestUtils.waitForCondition(
+      () => browser.currentURI.spec === "https://example.com/",
+      "The panel goes back anyway"
+    );
+
+    const reloaded = BrowserTestUtils.browserLoaded(browser);
+    EventUtils.synthesizeKey("r", { accelKey: true });
+    await reloaded;
+    ok(true, "And reloads");
+
+    tabBrowser.focus();
+    ok(
+      disabled("Browser:Back") && disabled("Browser:Reload"),
+      "The tab gets its own commands back with the focus"
+    );
+  });
+
+  gZenWebPanels.hide();
+  removeAllWebPanels();
+});

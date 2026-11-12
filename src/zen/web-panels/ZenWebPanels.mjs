@@ -16,6 +16,13 @@ const LAST_URL_SAVE_DELAY_MS = 1000;
 const SOUND_INDICATOR_SIZE = 14;
 const LINK_DROP_TYPES = ["text/x-moz-url", "text/uri-list"];
 const PANEL_DROP_TYPE = "application/x-zen-web-panel";
+// Back, forward and reload keys go through these commands, which follow the
+// selected tab: a disabled command drops its key.
+const NAVIGATION_COMMANDS = [
+  "Browser:Back",
+  "Browser:Forward",
+  "Browser:Reload",
+];
 // Popups that keep the sidebar out in compact mode when opened from it.
 const SIDEBAR_POPUP_IDS = ["zen-web-panels-context", "zen-web-panels-editor"];
 
@@ -73,6 +80,8 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
   #selectedHost = null;
   #soundIndicatorPressed = false;
   #sidebarPopups = new Set();
+  // The selected tab's navigation commands while a panel has focus.
+  #tabCommandStates = null;
 
   init() {
     if (
@@ -90,6 +99,7 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
     document.addEventListener("fullscreenchange", this);
     // Floating panels close when clicking anywhere else.
     window.addEventListener("mousedown", this, true);
+    window.addEventListener("focus", this, true);
     Services.prefs.addObserver(ZenWebPanelsStore.PANELS_PREF, this);
 
     window.addEventListener(
@@ -411,6 +421,23 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
         break;
       }
 
+      case "focus": {
+        const entry = this.#activeEntry;
+
+        if (
+          entry &&
+          !this.#host.hidden &&
+          // The window itself gets focus events too.
+          entry.container.contains(document.activeElement)
+        ) {
+          this.#enableNavigationCommands();
+        } else {
+          this.#restoreNavigationCommands();
+        }
+
+        break;
+      }
+
       case "popupshowing": {
         this.#onPopupShowing(event);
         break;
@@ -650,6 +677,13 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
   }
 
   #onSelectedLocationChange() {
+    // The tab just set its own commands; keep them for when the panel
+    // loses focus.
+    if (this.#tabCommandStates) {
+      this.#tabCommandStates = null;
+      this.#enableNavigationCommands();
+    }
+
     let host = "";
 
     try {
@@ -675,6 +709,38 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
         entry.reloadOnShow = true;
       }
     }
+  }
+
+  /**
+   * While a panel has focus, its back, forward and reload keys work even when
+   * the selected tab can't do those. The toolbar buttons share the commands
+   * and keep acting on the tab, which at worst does nothing.
+   */
+  #enableNavigationCommands() {
+    this.#tabCommandStates ??= new Map(
+      NAVIGATION_COMMANDS.map(id => [
+        id,
+        document.getElementById(id).hasAttribute("disabled"),
+      ])
+    );
+
+    for (const id of NAVIGATION_COMMANDS) {
+      document.getElementById(id).removeAttribute("disabled");
+    }
+  }
+
+  #restoreNavigationCommands() {
+    if (!this.#tabCommandStates) {
+      return;
+    }
+
+    for (const [id, disabled] of this.#tabCommandStates) {
+      if (disabled) {
+        document.getElementById(id).setAttribute("disabled", "true");
+      }
+    }
+
+    this.#tabCommandStates = null;
   }
 
   #onCommand(event) {
