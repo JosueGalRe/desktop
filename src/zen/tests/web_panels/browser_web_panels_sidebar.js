@@ -3,12 +3,18 @@
 
 "use strict";
 
-const sidebar = () => document.getElementById("zen-web-panels-sidebar");
 const sidebarItems = () => [
   ...sidebar().querySelectorAll(".zen-web-panels-sidebar-item"),
 ];
-const sidebarItemFor = panel =>
-  sidebar().querySelector(`[zen-web-panel-id="${panel.id}"]`);
+const drag = (type, element, dataTransfer, clientY = 0) =>
+  element.dispatchEvent(
+    new DragEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      clientY,
+      dataTransfer,
+    })
+  );
 
 add_task(async function test_sidebar_lists_and_toggles_panels() {
   const first = ZenWebPanelsStore.addPanel("https://example.com/");
@@ -59,7 +65,6 @@ add_task(async function test_unread_badge_comes_from_the_title() {
     "A number later in the title isn't a count"
   );
 
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
 
@@ -70,20 +75,11 @@ add_task(async function test_dragging_an_item_reorders_panels() {
   const target = sidebarItemFor(second);
   const bounds = target.getBoundingClientRect();
   const dataTransfer = new DataTransfer();
-  const drag = (type, element, clientY = 0) =>
-    element.dispatchEvent(
-      new DragEvent(type, {
-        bubbles: true,
-        cancelable: true,
-        clientY,
-        dataTransfer,
-      })
-    );
 
-  drag("dragstart", source);
-  drag("dragover", target, bounds.bottom - 1);
-  drag("drop", target, bounds.bottom - 1);
-  drag("dragend", source);
+  drag("dragstart", source, dataTransfer);
+  drag("dragover", target, dataTransfer, bounds.bottom - 1);
+  drag("drop", target, dataTransfer, bounds.bottom - 1);
+  drag("dragend", source, dataTransfer);
 
   Assert.deepEqual(
     ZenWebPanelsStore.getPanels().map(panel => panel.id),
@@ -105,15 +101,6 @@ add_task(async function test_dragging_survives_a_save_meanwhile() {
   const source = sidebarItemFor(first);
   const target = sidebarItemFor(second);
   const bounds = target.getBoundingClientRect();
-  const drag = (type, element, dataTransfer, clientY = 0) =>
-    element.dispatchEvent(
-      new DragEvent(type, {
-        bubbles: true,
-        cancelable: true,
-        clientY,
-        dataTransfer,
-      })
-    );
 
   const panelTransfer = new DataTransfer();
   drag("dragstart", source, panelTransfer);
@@ -140,7 +127,6 @@ add_task(async function test_dragging_survives_a_save_meanwhile() {
     "And dropping a link afterwards still adds it"
   );
 
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
 
@@ -171,7 +157,6 @@ add_task(async function test_shortcut_toggles_last_panel() {
     "And reopens the last one used"
   );
 
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
 
@@ -247,9 +232,7 @@ add_task(async function test_popups_from_the_sidebar_keep_it_out() {
     "The sidebar stays out while editing"
   );
 
-  let hidden = BrowserTestUtils.waitForEvent(editor(), "popuphidden");
-  editor().hidePopup();
-  await hidden;
+  await closePopup(editor());
   await TestUtils.waitForCondition(
     () => !sidebar().hasAttribute("has-popup-menu"),
     "Closing the editor lets the sidebar hide again"
@@ -272,10 +255,7 @@ add_task(async function test_popups_from_the_sidebar_keep_it_out() {
     "Without bringing the sidebar out"
   );
 
-  hidden = BrowserTestUtils.waitForEvent(editor(), "popuphidden");
-  editor().hidePopup();
-  await hidden;
-  gZenWebPanels.hide();
+  await closePopup(editor());
   removeAllWebPanels();
 });
 
@@ -333,7 +313,6 @@ add_task(async function test_add_button_opens_the_editor_for_a_new_panel() {
     );
   });
 
-  gZenWebPanels.hide();
   removeAllWebPanels();
 
   await BrowserTestUtils.withNewTab("https://example.org/", async () => {
@@ -355,13 +334,10 @@ add_task(async function test_add_button_opens_the_editor_for_a_new_panel() {
     );
 
     await openEditor();
-    const hidden = BrowserTestUtils.waitForEvent(editor(), "popuphidden");
-    editor().hidePopup();
-    await hidden;
+    await closePopup(editor());
     is(ZenWebPanelsStore.getPanels().length, 2, "Closing it adds nothing");
   });
 
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
 
@@ -380,9 +356,7 @@ add_task(async function test_context_menu_removes_panel() {
     "Items offer to be removed"
   );
 
-  const hidden = BrowserTestUtils.waitForEvent(menu, "popuphidden");
-  menu.activateItem(document.getElementById("zen-web-panels-context-remove"));
-  await hidden;
+  await activateAndClose(menu, "zen-web-panels-context-remove");
 
   is(ZenWebPanelsStore.getPanels().length, 0, "The panel is gone");
   is(sidebarItems().length, 0, "And so is its item");

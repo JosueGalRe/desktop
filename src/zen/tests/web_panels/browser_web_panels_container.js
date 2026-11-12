@@ -24,7 +24,6 @@ add_task(async function test_panel_loads_in_its_container() {
     identity.userContextId,
     "The page loads in the panel's container"
   );
-  gZenWebPanels.hide();
   removeAllWebPanels();
   ContextualIdentityService.remove(identity.userContextId);
 });
@@ -40,15 +39,7 @@ add_task(async function test_missing_container_falls_back_to_default() {
     "A container that no longer exists falls back to no container"
   );
 
-  const away = BrowserTestUtils.browserLoaded(
-    browser,
-    false,
-    "https://example.org/"
-  );
-  browser.loadURI(Services.io.newURI("https://example.org/"), {
-    triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal({}),
-  });
-  await away;
+  await loadInPanel(browser, "https://example.org/");
 
   const home = BrowserTestUtils.browserLoaded(
     browser,
@@ -59,6 +50,5 @@ add_task(async function test_missing_container_falls_back_to_default() {
   await home;
   ok(true, "Going back to the panel's page loads it in the same way");
 
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });

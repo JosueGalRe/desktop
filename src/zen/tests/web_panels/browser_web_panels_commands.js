@@ -64,44 +64,19 @@ add_task(async function test_toolbar_buttons_keep_acting_on_the_tab() {
 });
 
 add_task(async function test_panel_page_can_go_fullscreen() {
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      ["full-screen-api.allow-trusted-requests-only", false],
-      ["full-screen-api.transition-duration.enter", "0 0"],
-      ["full-screen-api.transition-duration.leave", "0 0"],
-      ["full-screen-api.warning.timeout", 0],
-    ],
-  });
+  await SpecialPowers.pushPrefEnv({ set: FULLSCREEN_PREFS });
   const { browser } = await openWebPanel("https://example.com/");
 
-  await SpecialPowers.spawn(browser, [], () =>
-    content.document.body.requestFullscreen()
-  );
-  await TestUtils.waitForCondition(
-    () => document.fullscreenElement === browser,
-    "The panel's page goes fullscreen"
-  );
+  await goFullscreen(browser);
   is(
     Math.round(browser.getBoundingClientRect().width),
     window.innerWidth,
-    "It covers the whole window"
+    "The panel's page in fullscreen covers the whole window"
   );
-
-  await SpecialPowers.spawn(browser, [], () =>
-    content.document.exitFullscreen()
-  );
-  await TestUtils.waitForCondition(
-    () => !document.fullscreenElement,
-    "And leaves fullscreen"
-  );
+  await leaveFullscreen(browser);
 
   // Hiding the panel takes its page out of fullscreen.
-  await SpecialPowers.spawn(browser, [], () =>
-    content.document.body.requestFullscreen()
-  );
-  await TestUtils.waitForCondition(
-    () => document.fullscreenElement === browser
-  );
+  await goFullscreen(browser);
   gZenWebPanels.hide();
   await TestUtils.waitForCondition(
     () =>
@@ -113,12 +88,7 @@ add_task(async function test_panel_page_can_go_fullscreen() {
 
   // So does switching to another panel.
   const other = ZenWebPanelsStore.addPanel("https://example.org/");
-  await SpecialPowers.spawn(browser, [], () =>
-    content.document.body.requestFullscreen()
-  );
-  await TestUtils.waitForCondition(
-    () => document.fullscreenElement === browser
-  );
+  await goFullscreen(browser);
   gZenWebPanels.show(other.id);
   await TestUtils.waitForCondition(
     () =>
@@ -130,23 +100,15 @@ add_task(async function test_panel_page_can_go_fullscreen() {
 
   // A tab in fullscreen takes the whole window too, with a panel open.
   await BrowserTestUtils.withNewTab("https://example.org/", async tab => {
-    await SpecialPowers.spawn(tab, [], () =>
-      content.document.body.requestFullscreen()
-    );
-    await TestUtils.waitForCondition(
-      () => document.fullscreenElement === tab,
-      "The tab goes fullscreen with the panel open"
-    );
+    await goFullscreen(tab);
     is(
       Math.round(tab.getBoundingClientRect().width),
       window.innerWidth,
-      "And covers the whole window"
+      "The tab in fullscreen covers the whole window"
     );
-    await SpecialPowers.spawn(tab, [], () => content.document.exitFullscreen());
-    await TestUtils.waitForCondition(() => !document.fullscreenElement);
+    await leaveFullscreen(tab);
   });
 
-  gZenWebPanels.hide();
   removeAllWebPanels();
   await SpecialPowers.popPrefEnv();
 });
@@ -158,17 +120,7 @@ add_task(async function test_navigation_keys_when_the_tab_cant_navigate() {
   });
   await BrowserTestUtils.withNewTab("about:blank", async tabBrowser => {
     const { browser } = await openWebPanel("https://example.com/");
-    const loaded = BrowserTestUtils.browserLoaded(
-      browser,
-      false,
-      "https://example.org/"
-    );
-    browser.loadURI(Services.io.newURI("https://example.org/"), {
-      triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal(
-        {}
-      ),
-    });
-    await loaded;
+    await loadInPanel(browser, "https://example.org/");
 
     const disabled = id => document.getElementById(id).hasAttribute("disabled");
     tabBrowser.focus();
@@ -200,6 +152,5 @@ add_task(async function test_navigation_keys_when_the_tab_cant_navigate() {
     );
   });
 
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });

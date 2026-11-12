@@ -3,13 +3,12 @@
 
 "use strict";
 
-const host = () => document.getElementById("zen-web-panel");
-const sidebarItemFor = panel =>
-  document
-    .getElementById("zen-web-panels-sidebar")
-    .querySelector(`[zen-web-panel-id="${panel.id}"]`);
 const panelBrowserFor = panel =>
   host().querySelector(`browser[zen-web-panel-id="${panel.id}"]`);
+const AUTOPLAY_PREFS = [
+  ["media.autoplay.default", 0],
+  ["media.volume_scale", "0.0"],
+];
 
 /**
  * Runs a test with timers of a minute or more shortened, so options counted
@@ -35,17 +34,14 @@ async function withShortMinutes(callback) {
 
 add_task(async function test_editor_saves_options() {
   const panel = ZenWebPanelsStore.addPanel("https://example.com/");
-  const popup = () => document.getElementById("zen-web-panels-editor");
-
-  gZenWebPanels.edit(panel.id);
-  await TestUtils.waitForCondition(() => popup()?.state === "open");
+  const editor = await editPanel(panel);
 
   ok(
-    popup().querySelector(".zen-web-panels-editor-footer").hidden,
+    editor.querySelector(".zen-web-panels-editor-footer").hidden,
     "Editing a stored panel has nothing to add"
   );
 
-  const title = popup().querySelector(".zen-web-panels-editor-title");
+  const title = editor.querySelector(".zen-web-panels-editor-title");
   title.value = "Example";
   title.dispatchEvent(new Event("change"));
   is(ZenWebPanelsStore.getPanel(panel.id).title, "Example", "Title saved");
@@ -55,14 +51,14 @@ add_task(async function test_editor_saves_options() {
     "The sidebar uses the title"
   );
 
-  popup().querySelector('checkbox[option="floating"]').click();
+  editor.querySelector('checkbox[option="floating"]').click();
   ok(ZenWebPanelsStore.getPanel(panel.id).floating, "Floating saved");
 
-  const url = popup().querySelector(".zen-web-panels-editor-url");
+  const url = editor.querySelector(".zen-web-panels-editor-url");
   url.value = "file:///etc/passwd";
   url.dispatchEvent(new Event("change"));
   ok(
-    !popup().querySelector(".zen-web-panels-editor-url-error").hidden,
+    !editor.querySelector(".zen-web-panels-editor-url-error").hidden,
     "A bad address shows an error"
   );
   is(
@@ -71,42 +67,32 @@ add_task(async function test_editor_saves_options() {
     "And isn't saved"
   );
 
-  const hidden = BrowserTestUtils.waitForEvent(popup(), "popuphidden");
-  popup().hidePopup();
-  await hidden;
+  await closePopup(editor);
   removeAllWebPanels();
 });
 
 add_task(async function test_editor_stays_open_while_editing() {
   const { panel } = await openWebPanel("https://example.com/");
-  const popup = () => document.getElementById("zen-web-panels-editor");
   const settle = () =>
     new Promise(resolve =>
       requestAnimationFrame(() => requestAnimationFrame(resolve))
     );
-  const open = async anchor => {
-    gZenWebPanels.edit(panel.id, anchor);
-    await TestUtils.waitForCondition(() => popup()?.state === "open");
-  };
 
-  await open();
-  popup().querySelector('checkbox[option="mobile"]').click();
+  let editor = await editPanel(panel);
+  editor.querySelector('checkbox[option="mobile"]').click();
   await settle();
-  is(popup().state, "open", "Saving re-renders the sidebar, not the editor");
+  is(editor.state, "open", "Saving re-renders the sidebar, not the editor");
+  await closePopup(editor);
 
-  let hidden = BrowserTestUtils.waitForEvent(popup(), "popuphidden");
-  popup().hidePopup();
-  await hidden;
-
-  await open(document.getElementById("zen-web-panel-more"));
-  popup().querySelector('checkbox[option="hideHeader"]').click();
+  editor = await editPanel(
+    panel,
+    document.getElementById("zen-web-panel-more")
+  );
+  editor.querySelector('checkbox[option="hideHeader"]').click();
   await settle();
-  is(popup().state, "open", "Hiding the header it opened from keeps it too");
+  is(editor.state, "open", "Hiding the header it opened from keeps it too");
 
-  hidden = BrowserTestUtils.waitForEvent(popup(), "popuphidden");
-  popup().hidePopup();
-  await hidden;
-  gZenWebPanels.hide();
+  await closePopup(editor);
   removeAllWebPanels();
 });
 
@@ -179,7 +165,6 @@ add_task(async function test_hidden_header_and_badge() {
   );
   ok(!sidebarItemFor(panel).hasAttribute("badge"), "The badge is hidden");
 
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
 
@@ -188,15 +173,7 @@ add_task(async function test_restore_last_page() {
     restoreLastPage: true,
   });
 
-  const loaded = BrowserTestUtils.browserLoaded(
-    browser,
-    false,
-    "https://example.org/"
-  );
-  browser.loadURI(Services.io.newURI("https://example.org/"), {
-    triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal({}),
-  });
-  await loaded;
+  await loadInPanel(browser, "https://example.org/");
   await TestUtils.waitForCondition(
     () =>
       ZenWebPanelsStore.getPanel(panel.id).lastURL === "https://example.org/",
@@ -211,7 +188,6 @@ add_task(async function test_restore_last_page() {
     "Reopening the panel goes back to it"
   );
 
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
 
@@ -232,7 +208,6 @@ add_task(async function test_unload_after_inactivity() {
     );
   });
 
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
 
@@ -248,7 +223,6 @@ add_task(async function test_periodic_reload() {
     ok(true, "The panel reloads on its own");
   });
 
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
 
@@ -263,7 +237,6 @@ add_task(async function test_reload_on_tab_change() {
     ok(true, "Switching to another site reloads the panel");
   });
 
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
 
@@ -288,7 +261,6 @@ add_task(async function test_zoom_is_kept_per_panel() {
     "Reopening the panel keeps it"
   );
 
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
 
@@ -336,7 +308,6 @@ add_task(async function test_temporary_panel() {
   ok(kept.zoom > 1, "With the zoom it had");
   is(gZenWebPanels.activeBrowser, browser, "Without reloading it");
 
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
 
@@ -362,10 +333,9 @@ add_task(async function test_panel_shortcuts() {
 });
 
 add_task(async function test_dropping_tabs_and_links_on_sidebar() {
-  const sidebar = document.getElementById("zen-web-panels-sidebar");
   const drop = dataTransfer => {
     for (const type of ["dragover", "drop"]) {
-      sidebar.dispatchEvent(
+      sidebar().dispatchEvent(
         new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer })
       );
     }
@@ -398,7 +368,6 @@ add_task(async function test_dropping_tabs_and_links_on_sidebar() {
   drop(fileTransfer);
   is(ZenWebPanelsStore.getPanels().length, 2, "A dropped file URL is ignored");
 
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
 
@@ -409,9 +378,7 @@ add_task(async function test_header_menu() {
     const shown = BrowserTestUtils.waitForEvent(menu, "popupshown");
     menu.openPopup(document.getElementById("zen-web-panel-more"));
     await shown;
-    const hidden = BrowserTestUtils.waitForEvent(menu, "popuphidden");
-    menu.activateItem(document.getElementById(id));
-    await hidden;
+    await activateAndClose(menu, id);
   };
 
   const tabOpened = BrowserTestUtils.waitForNewTab(
@@ -429,27 +396,17 @@ add_task(async function test_header_menu() {
   );
   ok(true, "Copy Link copies the panel's address");
 
-  const away = BrowserTestUtils.browserLoaded(browser);
-  browser.loadURI(Services.io.newURI("https://example.org/"), {
-    triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal({}),
-  });
-  await away;
+  await loadInPanel(browser, "https://example.org/");
   const home = BrowserTestUtils.browserLoaded(browser, false, panel.url);
   await runItem("zen-web-panel-go-home");
   await home;
   ok(true, "Go to Panel Home goes back to the panel's address");
 
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
 
 add_task(async function test_sound_indicator_and_mute() {
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      ["media.autoplay.default", 0],
-      ["media.volume_scale", "0.0"],
-    ],
-  });
+  await SpecialPowers.pushPrefEnv({ set: AUTOPLAY_PREFS });
   const { panel, browser } = await openWebPanel(
     TEST_ROOT + "file_web_panels_media.html"
   );
@@ -464,9 +421,7 @@ add_task(async function test_sound_indicator_and_mute() {
   const shown = BrowserTestUtils.waitForEvent(menu, "popupshown");
   EventUtils.synthesizeMouseAtCenter(item, { type: "contextmenu", button: 2 });
   await shown;
-  const hidden = BrowserTestUtils.waitForEvent(menu, "popuphidden");
-  menu.activateItem(document.getElementById("zen-web-panels-context-mute"));
-  await hidden;
+  await activateAndClose(menu, "zen-web-panels-context-mute");
 
   ok(browser.browsingContext.mediaController.isMuted, "Mute mutes the panel");
   await TestUtils.waitForCondition(
@@ -496,17 +451,11 @@ add_task(async function test_sound_indicator_and_mute() {
   ok(!browser.browsingContext.mediaController.isMuted, "And nothing was muted");
 
   browser.browsingContext.mediaController.pause("user");
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
 
 add_task(async function test_sound_indicator_in_right_to_left() {
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      ["media.autoplay.default", 0],
-      ["media.volume_scale", "0.0"],
-    ],
-  });
+  await SpecialPowers.pushPrefEnv({ set: AUTOPLAY_PREFS });
   const originalDir = document.documentElement.getAttribute("dir");
   const { panel, browser } = await openWebPanel(
     TEST_ROOT + "file_web_panels_media.html"
@@ -531,7 +480,6 @@ add_task(async function test_sound_indicator_in_right_to_left() {
   }
 
   browser.browsingContext.mediaController.pause("user");
-  gZenWebPanels.hide();
   removeAllWebPanels();
   await SpecialPowers.popPrefEnv();
 });
@@ -539,11 +487,10 @@ add_task(async function test_sound_indicator_in_right_to_left() {
 add_task(async function test_panel_audio_with_media_controls_off() {
   await SpecialPowers.pushPrefEnv({
     set: [
+      ...AUTOPLAY_PREFS,
       ["zen.mediacontrols.enabled", false],
       // Otherwise the new window's tab is synced into this one.
       ["zen.window-sync.enabled", false],
-      ["media.autoplay.default", 0],
-      ["media.volume_scale", "0.0"],
       // The test tone is shorter than the media Firefox lets you control.
       ["media.mediacontrol.eligible.media.duration.s", "0.5"],
     ],
@@ -573,11 +520,8 @@ add_task(async function test_panel_audio_with_media_controls_off() {
 
 add_task(async function test_editing_the_visible_panel_keeps_the_focus() {
   const { panel } = await openWebPanel("https://example.com/");
-  const popup = () => document.getElementById("zen-web-panels-editor");
-
-  gZenWebPanels.edit(panel.id);
-  await TestUtils.waitForCondition(() => popup()?.state === "open");
-  const url = popup().querySelector(".zen-web-panels-editor-url");
+  const editor = await editPanel(panel);
+  const url = editor.querySelector(".zen-web-panels-editor-url");
   url.focus();
   url.value = "https://example.org/";
   url.dispatchEvent(new Event("change"));
@@ -589,10 +533,7 @@ add_task(async function test_editing_the_visible_panel_keeps_the_focus() {
   );
   is(document.activeElement, url, "The focus stays in the editor");
 
-  const hidden = BrowserTestUtils.waitForEvent(popup(), "popuphidden");
-  popup().hidePopup();
-  await hidden;
-  gZenWebPanels.hide();
+  await closePopup(editor);
   removeAllWebPanels();
 });
 
@@ -618,7 +559,6 @@ add_task(async function test_panel_menu_change_keeps_the_panel_focused() {
     "The focus stays in the panel, not the tab"
   );
 
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
 
@@ -636,15 +576,7 @@ add_task(async function test_last_page_ignores_a_quick_round_trip() {
     "The first page is remembered"
   );
 
-  const away = BrowserTestUtils.browserLoaded(
-    browser,
-    false,
-    "https://example.org/"
-  );
-  browser.loadURI(Services.io.newURI("https://example.org/"), {
-    triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal({}),
-  });
-  await away;
+  await loadInPanel(browser, "https://example.org/");
   browser.goBack();
   await TestUtils.waitForCondition(
     () => browser.currentURI.spec === "https://example.com/"
@@ -659,7 +591,6 @@ add_task(async function test_last_page_ignores_a_quick_round_trip() {
     "A page left before it was saved isn't saved later"
   );
 
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
 
@@ -695,29 +626,21 @@ add_task(async function test_resizer_widens_toward_its_side() {
     document.documentElement.removeAttribute("dir");
   }
 
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
 
 add_task(async function test_icon_picker_closed_without_a_pick() {
   const { panel } = await openWebPanel("https://example.com/");
-  const editor = () => document.getElementById("zen-web-panels-editor");
   const picker = document.getElementById("PanelUI-zen-emojis-picker");
 
-  gZenWebPanels.edit(panel.id);
-  await TestUtils.waitForCondition(() => editor()?.state === "open");
-  editor().querySelector(".zen-web-panels-editor-icon").doCommand();
+  const editor = await editPanel(panel);
+  editor.querySelector(".zen-web-panels-editor-icon").doCommand();
   await TestUtils.waitForCondition(() => picker.state === "open");
 
-  let hidden = BrowserTestUtils.waitForEvent(picker, "popuphidden");
-  picker.hidePopup();
-  await hidden;
+  await closePopup(picker);
   await TestUtils.waitForTick();
   ok(true, "Closing the icon picker without a pick is fine");
 
-  hidden = BrowserTestUtils.waitForEvent(editor(), "popuphidden");
-  editor().hidePopup();
-  await hidden;
-  gZenWebPanels.hide();
+  await closePopup(editor);
   removeAllWebPanels();
 });

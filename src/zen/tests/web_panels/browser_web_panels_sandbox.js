@@ -30,6 +30,5 @@ add_task(async function test_panel_runs_in_a_web_content_process() {
   ok(!gBrowser.getTabForBrowser(browser), "The panel is not a tab");
   is(gBrowser.tabs.length, tabCount, "Opening a panel doesn't add tabs");
 
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });

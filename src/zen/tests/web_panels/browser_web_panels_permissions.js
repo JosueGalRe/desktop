@@ -3,6 +3,29 @@
 
 "use strict";
 
+const { PromptTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/PromptTestUtils.sys.mjs"
+);
+
+/**
+ * Opens a panel whose page asks for the microphone, once its prompt shows.
+ *
+ * @param {object} [options] - Passed to openWebPanel.
+ * @returns {Promise<{panel: object, browser: Element}>}
+ */
+async function openPermissionPanel(options) {
+  const shown = BrowserTestUtils.waitForEvent(
+    PopupNotifications.panel,
+    "popupshown"
+  );
+  const opened = await openWebPanel(
+    TEST_ROOT + "file_web_panels_permission.html",
+    options
+  );
+  await shown;
+  return opened;
+}
+
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
@@ -13,14 +36,7 @@ add_setup(async function () {
 });
 
 add_task(async function test_permission_prompt_shows_for_the_panel() {
-  const shown = BrowserTestUtils.waitForEvent(
-    PopupNotifications.panel,
-    "popupshown"
-  );
-  const { browser } = await openWebPanel(
-    TEST_ROOT + "file_web_panels_permission.html"
-  );
-  await shown;
+  const { browser } = await openPermissionPanel();
 
   const notification = PopupNotifications.getNotification(
     "webRTC-shareDevices",
@@ -38,14 +54,10 @@ add_task(async function test_permission_prompt_shows_for_the_panel() {
   );
   notification.remove();
   await hidden;
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
 
 add_task(async function test_content_prompts_cover_the_panel() {
-  const { PromptTestUtils } = ChromeUtils.importESModule(
-    "resource://testing-common/PromptTestUtils.sys.mjs"
-  );
   const { browser } = await openWebPanel("https://example.com/");
 
   const promptShown = PromptTestUtils.waitForPrompt(browser, {
@@ -67,7 +79,6 @@ add_task(async function test_content_prompts_cover_the_panel() {
   );
 
   await PromptTestUtils.handlePrompt(dialog, { buttonNumClick: 0 });
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
 
@@ -75,7 +86,6 @@ add_task(async function test_permission_prompt_follows_its_panel() {
   const doorhanger = PopupNotifications.panel;
   const anchor = () =>
     document.getElementById("zen-web-panel-notification-anchor");
-  const host = document.getElementById("zen-web-panel");
   const settle = async () => {
     await TestUtils.waitForTick();
     await TestUtils.waitForTick();
@@ -88,7 +98,9 @@ add_task(async function test_permission_prompt_follows_its_panel() {
 
   gZenWebPanels.show(panel.id);
   gZenWebPanels.show(other.id);
-  const browser = host.querySelector(`browser[zen-web-panel-id="${panel.id}"]`);
+  const browser = host().querySelector(
+    `browser[zen-web-panel-id="${panel.id}"]`
+  );
   await TestUtils.waitForCondition(
     () => PopupNotifications.getNotification("webRTC-shareDevices", browser),
     "The request arrives while another panel is in front"
@@ -100,7 +112,7 @@ add_task(async function test_permission_prompt_follows_its_panel() {
   let shown = BrowserTestUtils.waitForEvent(doorhanger, "popupshown");
   gZenWebPanels.show(panel.id);
   await shown;
-  ok(host.contains(doorhanger.anchorNode), "Its panel shows it");
+  ok(host().contains(doorhanger.anchorNode), "Its panel shows it");
 
   await BrowserTestUtils.withNewTab("https://example.org/", async () => {
     await settle();
@@ -118,12 +130,10 @@ add_task(async function test_permission_prompt_follows_its_panel() {
   shown = BrowserTestUtils.waitForEvent(doorhanger, "popupshown");
   anchor().doCommand();
   await shown;
-  ok(host.contains(doorhanger.anchorNode), "And brings the prompt back");
+  ok(host().contains(doorhanger.anchorNode), "And brings the prompt back");
 
   hidden = BrowserTestUtils.waitForEvent(doorhanger, "popuphidden");
-  browser.loadURI(Services.io.newURI("https://example.org/"), {
-    triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal({}),
-  });
+  await loadInPanel(browser, "https://example.org/");
   await hidden;
   await TestUtils.waitForCondition(
     () => !PopupNotifications.getNotification("webRTC-shareDevices", browser),
@@ -132,24 +142,13 @@ add_task(async function test_permission_prompt_follows_its_panel() {
   await settle();
   ok(!BrowserTestUtils.isVisible(anchor()), "And the header stops offering it");
 
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
 
 add_task(async function test_permission_prompt_without_the_header() {
-  let shown = BrowserTestUtils.waitForEvent(
-    PopupNotifications.panel,
-    "popupshown"
-  );
-  const { browser } = await openWebPanel(
-    TEST_ROOT + "file_web_panels_permission.html",
-    { hideHeader: true }
-  );
-  await shown;
+  const { browser } = await openPermissionPanel({ hideHeader: true });
   ok(
-    document
-      .getElementById("zen-web-panel")
-      .contains(PopupNotifications.panel.anchorNode),
+    host().contains(PopupNotifications.panel.anchorNode),
     "With the header hidden the prompt still points at the panel"
   );
 
@@ -162,7 +161,10 @@ add_task(async function test_permission_prompt_without_the_header() {
 
   // Permission prompts are persistent; others, like saving a password, go
   // away when dismissed, and the header button is what brings them back.
-  shown = BrowserTestUtils.waitForEvent(PopupNotifications.panel, "popupshown");
+  let shown = BrowserTestUtils.waitForEvent(
+    PopupNotifications.panel,
+    "popupshown"
+  );
   const notification = PopupNotifications.show(
     browser,
     "zen-web-panels-test",
@@ -171,12 +173,7 @@ add_task(async function test_permission_prompt_without_the_header() {
     { label: "OK", accessKey: "O", callback() {} }
   );
   await shown;
-  hidden = BrowserTestUtils.waitForEvent(
-    PopupNotifications.panel,
-    "popuphidden"
-  );
-  PopupNotifications.panel.hidePopup();
-  await hidden;
+  await closePopup(PopupNotifications.panel);
   ok(notification.dismissed, "Clicking away dismisses it");
 
   gZenWebPanels.hide();
@@ -191,14 +188,10 @@ add_task(async function test_permission_prompt_without_the_header() {
   );
   notification.remove();
   await hidden;
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
 
 add_task(async function test_http_auth_in_a_panel() {
-  const { PromptTestUtils } = ChromeUtils.importESModule(
-    "resource://testing-common/PromptTestUtils.sys.mjs"
-  );
   const panel = ZenWebPanelsStore.addPanel(
     TEST_ROOT + "file_web_panels_auth.sjs"
   );
@@ -223,19 +216,11 @@ add_task(async function test_http_auth_in_a_panel() {
   Cc["@mozilla.org/network/http-auth-manager;1"]
     .getService(Ci.nsIHttpAuthManager)
     .clearAll();
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
 
 add_task(async function test_tab_icons_with_a_panel_request_pending() {
-  const shown = BrowserTestUtils.waitForEvent(
-    PopupNotifications.panel,
-    "popupshown"
-  );
-  const { browser } = await openWebPanel(
-    TEST_ROOT + "file_web_panels_permission.html"
-  );
-  await shown;
+  const { browser } = await openPermissionPanel();
 
   const icon = document.getElementById("geo-notification-icon");
   const settle = async () => {
@@ -281,19 +266,11 @@ add_task(async function test_tab_icons_with_a_panel_request_pending() {
   );
   PopupNotifications.getNotification("webRTC-shareDevices", browser).remove();
   await hidden;
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
 
 add_task(async function test_escape_answers_the_prompt_of_a_focused_panel() {
-  const shown = BrowserTestUtils.waitForEvent(
-    PopupNotifications.panel,
-    "popupshown"
-  );
-  const { browser } = await openWebPanel(
-    TEST_ROOT + "file_web_panels_permission.html"
-  );
-  await shown;
+  const { browser } = await openPermissionPanel();
 
   browser.focus();
   const hidden = BrowserTestUtils.waitForEvent(
@@ -305,51 +282,27 @@ add_task(async function test_escape_answers_the_prompt_of_a_focused_panel() {
   ok(true, "Esc in the panel that asked closes its prompt");
 
   PopupNotifications.getNotification("webRTC-shareDevices", browser)?.remove();
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
 
 add_task(async function test_panel_prompts_and_fullscreen() {
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      ["full-screen-api.allow-trusted-requests-only", false],
-      ["full-screen-api.transition-duration.enter", "0 0"],
-      ["full-screen-api.transition-duration.leave", "0 0"],
-      ["full-screen-api.warning.timeout", 0],
-    ],
-  });
-  const goFullscreen = async browser => {
-    browser.focus();
-    await SpecialPowers.spawn(browser, [], () =>
-      content.document.body.requestFullscreen()
-    );
-    await TestUtils.waitForCondition(
-      () => document.fullscreenElement === browser
-    );
-  };
+  await SpecialPowers.pushPrefEnv({ set: FULLSCREEN_PREFS });
 
   // A pending request goes away when its page goes fullscreen, as in a tab.
-  let shown = BrowserTestUtils.waitForEvent(
-    PopupNotifications.panel,
-    "popupshown"
-  );
-  const { browser } = await openWebPanel(
-    TEST_ROOT + "file_web_panels_permission.html"
-  );
-  await shown;
+  const { browser } = await openPermissionPanel();
   await goFullscreen(browser);
   await TestUtils.waitForCondition(
     () => !PopupNotifications.getNotification("webRTC-shareDevices", browser),
     "Going fullscreen removes the panel's pending request"
   );
-  await SpecialPowers.spawn(browser, [], () =>
-    content.document.exitFullscreen()
-  );
-  await TestUtils.waitForCondition(() => !document.fullscreenElement);
+  await leaveFullscreen(browser);
 
   // And a request from a page in fullscreen takes it out of fullscreen.
   await goFullscreen(browser);
-  shown = BrowserTestUtils.waitForEvent(PopupNotifications.panel, "popupshown");
+  const shown = BrowserTestUtils.waitForEvent(
+    PopupNotifications.panel,
+    "popupshown"
+  );
   await SpecialPowers.spawn(browser, [], () => content.wrappedJSObject.ask());
   await shown;
   await TestUtils.waitForCondition(
@@ -363,7 +316,6 @@ add_task(async function test_panel_prompts_and_fullscreen() {
   );
   PopupNotifications.getNotification("webRTC-shareDevices", browser).remove();
   await hidden;
-  gZenWebPanels.hide();
   removeAllWebPanels();
   await SpecialPowers.popPrefEnv();
 });
@@ -402,6 +354,5 @@ add_task(async function test_panel_request_removal_keeps_the_tab_icons() {
   );
 
   tabNotification.remove();
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });

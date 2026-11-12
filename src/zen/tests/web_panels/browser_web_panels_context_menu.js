@@ -17,18 +17,6 @@ async function openContentContextMenu(selector, browser) {
   return menu;
 }
 
-async function activateAndClose(menu, id) {
-  const hidden = BrowserTestUtils.waitForEvent(menu, "popuphidden");
-  menu.activateItem(document.getElementById(id));
-  await hidden;
-}
-
-async function closeMenu(menu) {
-  const hidden = BrowserTestUtils.waitForEvent(menu, "popuphidden");
-  menu.hidePopup();
-  await hidden;
-}
-
 add_task(async function test_link_context_menu_opens_link_in_web_panel() {
   await BrowserTestUtils.withNewTab(LINK_PAGE, async browser => {
     const menu = await openContentContextMenu("#link", browser);
@@ -89,7 +77,7 @@ add_task(async function test_page_context_menu_adds_page_once() {
       document.getElementById("context-zenAddPageToWebPanels").hidden,
       "A panel doesn't offer to add itself"
     );
-    await closeMenu(menu);
+    await closePopup(menu);
     gZenWebPanels.hide();
   });
   removeAllWebPanels();
@@ -124,7 +112,7 @@ add_task(async function test_tab_context_menu_adds_tab() {
     });
     await shown;
     ok(item.hidden, "about: pages can't be added");
-    await closeMenu(menu);
+    await closePopup(menu);
     BrowserTestUtils.removeTab(blankTab);
   });
   removeAllWebPanels();
@@ -147,7 +135,7 @@ add_task(async function test_page_items_act_on_the_panel() {
       // hides on browsers that aren't tabs; the command is the same.
       let menu = await openContentContextMenu("body", browser);
       gContextMenu.bookmarkThisPage();
-      await closeMenu(menu);
+      await closePopup(menu);
 
       menu = await openContentContextMenu("body", browser);
       const sendMenu = document.getElementById("context-sendpagetodevice");
@@ -158,7 +146,7 @@ add_task(async function test_page_items_act_on_the_panel() {
       );
       sendMenu.openMenu(true);
       await shown;
-      await closeMenu(menu);
+      await closePopup(menu);
     });
   } finally {
     Object.assign(PlacesCommandHook, { bookmarkLink, bookmarkPage });
@@ -171,6 +159,5 @@ add_task(async function test_page_items_act_on_the_panel() {
     "Bookmarking and sending use the panel's page, not the tab's"
   );
 
-  gZenWebPanels.hide();
   removeAllWebPanels();
 });
