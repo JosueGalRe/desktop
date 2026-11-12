@@ -265,7 +265,7 @@
     outline-offset: -2px;
   }
 
-  /* Clicking this corner mutes the panel, see #onItemMouseDown. */
+  /* Clicking this corner mutes the panel, see #onItemClick. */
   &:is([soundplaying], [muted]) > .toolbarbutton-badge-stack::after {
     content: "";
     position: absolute;
@@ -320,7 +320,8 @@
       inset-block: var(--zen-element-separation);
       right: 0;
       padding-inline: var(--zen-web-panels-sidebar-sliver) var(--zen-element-separation);
-      translate: calc(100% - var(--zen-web-panels-sidebar-sliver));
+      --zen-web-panels-sidebar-hidden: calc(100% - var(--zen-web-panels-sidebar-sliver));
+      translate: var(--zen-web-panels-sidebar-hidden);
       transition: translate 0.15s ease;
 
       &:is([zen-has-hover], [flash-popup], [has-popup-menu]) {
@@ -334,11 +335,7 @@
       right: auto;
       left: 0;
       padding-inline: var(--zen-element-separation) var(--zen-web-panels-sidebar-sliver);
-      translate: calc(-100% + var(--zen-web-panels-sidebar-sliver));
-
-      &:is([zen-has-hover], [flash-popup], [has-popup-menu]) {
-        translate: none;
-      }
+      --zen-web-panels-sidebar-hidden: calc(-100% + var(--zen-web-panels-sidebar-sliver));
     }
 
     .zen-web-panels-sidebar-content {

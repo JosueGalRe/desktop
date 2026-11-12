@@ -89,9 +89,7 @@ export class nsZenWebPanelsEditor {
 
     return (
       !Object.hasOwn(changes, "url") ||
-      ZenWebPanelsStore.isAllowedURL(
-        ZenWebPanelsStore.normalizeURL(changes.url)
-      )
+      ZenWebPanelsStore.normalizeURL(changes.url) !== null
     );
   }
 

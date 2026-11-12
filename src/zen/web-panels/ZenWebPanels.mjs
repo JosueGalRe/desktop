@@ -313,10 +313,7 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
       if (entry.browser === browser) {
         entry.icon = iconURL;
         this.#updateSidebar();
-
-        if (entry === this.#activeEntry) {
-          this.#updateHeader();
-        }
+        this.#updateHeader();
       }
     }
   }
@@ -1568,9 +1565,7 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
           }
         }
 
-        if (entry === this.#activeEntry) {
-          this.#updateHeader();
-        }
+        this.#updateHeader();
       },
     };
 
@@ -1582,10 +1577,7 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
     browser.addEventListener("pagetitlechanged", () => {
       entry.badge = this.#badgeFor(browser.contentTitle);
       this.#updateSidebar();
-
-      if (entry === this.#activeEntry) {
-        this.#updateHeader();
-      }
+      this.#updateHeader();
     });
 
     // The media controls follow tabs' "soundplaying"; panels report directly.
