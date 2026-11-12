@@ -196,14 +196,17 @@ export class nsZenWebPanelsEditor {
     });
 
     icon.addEventListener("command", () => {
-      gZenEmojiPicker.open(icon, {
-        emojiAsSVG: true,
-        allowNone: Boolean(this.#current()?.icon),
-        onSelect: emoji => {
-          this.#save({ icon: emoji ?? "" });
-          this.#fillIcon(this.#current());
-        },
-      });
+      // It rejects when closed without a pick; onSelect does the work.
+      gZenEmojiPicker
+        .open(icon, {
+          emojiAsSVG: true,
+          allowNone: Boolean(this.#current()?.icon),
+          onSelect: emoji => {
+            this.#save({ icon: emoji ?? "" });
+            this.#fillIcon(this.#current());
+          },
+        })
+        .catch(() => {});
     });
 
     popup

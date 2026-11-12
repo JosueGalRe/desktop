@@ -598,3 +598,26 @@ add_task(async function test_resizer_widens_toward_its_side() {
   gZenWebPanels.hide();
   removeAllWebPanels();
 });
+
+add_task(async function test_icon_picker_closed_without_a_pick() {
+  const { panel } = await openWebPanel("https://example.com/");
+  const editor = () => document.getElementById("zen-web-panels-editor");
+  const picker = document.getElementById("PanelUI-zen-emojis-picker");
+
+  gZenWebPanels.edit(panel.id);
+  await TestUtils.waitForCondition(() => editor()?.state === "open");
+  editor().querySelector(".zen-web-panels-editor-icon").doCommand();
+  await TestUtils.waitForCondition(() => picker.state === "open");
+
+  let hidden = BrowserTestUtils.waitForEvent(picker, "popuphidden");
+  picker.hidePopup();
+  await hidden;
+  await TestUtils.waitForTick();
+  ok(true, "Closing the icon picker without a pick is fine");
+
+  hidden = BrowserTestUtils.waitForEvent(editor(), "popuphidden");
+  editor().hidePopup();
+  await hidden;
+  gZenWebPanels.hide();
+  removeAllWebPanels();
+});
