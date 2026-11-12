@@ -524,6 +524,32 @@ add_task(async function test_editing_the_visible_panel_keeps_the_focus() {
   removeAllWebPanels();
 });
 
+add_task(async function test_panel_menu_change_keeps_the_panel_focused() {
+  const { browser } = await openWebPanel("https://example.com/");
+  const menu = document.getElementById("zen-web-panel-more-menu");
+
+  browser.focus();
+  const shown = BrowserTestUtils.waitForEvent(menu, "popupshown");
+  menu.openPopup(document.getElementById("zen-web-panel-more"));
+  await shown;
+  // Recreating the panel hides its header, and the menu goes with it.
+  menu.activateItem(document.getElementById("zen-web-panel-mobile"));
+
+  await TestUtils.waitForCondition(
+    () =>
+      gZenWebPanels.activeBrowser && gZenWebPanels.activeBrowser !== browser,
+    "Mobile view recreates the panel"
+  );
+  is(
+    document.activeElement,
+    gZenWebPanels.activeBrowser,
+    "The focus stays in the panel, not the tab"
+  );
+
+  gZenWebPanels.hide();
+  removeAllWebPanels();
+});
+
 add_task(async function test_last_page_ignores_a_quick_round_trip() {
   // History entries need user interaction to be gone back to otherwise.
   await SpecialPowers.pushPrefEnv({

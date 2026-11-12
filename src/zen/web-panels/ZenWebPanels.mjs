@@ -508,11 +508,14 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
         next.mobile !== entry.panel.mobile
       ) {
         const wasVisible = this.activeBrowser === entry.browser;
+        // The focus stays where it was: in the panel, or in the editor or
+        // other window the change came from.
+        const hadFocus =
+          wasVisible && this.#host.contains(document.activeElement);
         this.unload(id);
 
-        // Changed from the editor, which keeps the focus.
         if (wasVisible) {
-          this.show(id, { takeFocus: false });
+          this.show(id, { takeFocus: hadFocus });
         }
 
         continue;
