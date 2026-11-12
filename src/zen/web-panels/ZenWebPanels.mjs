@@ -199,6 +199,17 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
     clearTimeout(entry.unloadTimer);
     this.#activeId = id;
     this.#host.hidden = false;
+
+    // Without the header there's no button to bring back the requests the
+    // user put away, so showing the panel does.
+    if (panel.hideHeader) {
+      for (const notification of PopupNotifications.getNotificationsForBrowser(
+        entry.browser
+      )) {
+        notification.dismissed = false;
+      }
+    }
+
     this.#applyLayout();
 
     if (entry.reloadOnShow) {

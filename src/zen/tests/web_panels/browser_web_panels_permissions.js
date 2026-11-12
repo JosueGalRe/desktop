@@ -137,7 +137,7 @@ add_task(async function test_permission_prompt_follows_its_panel() {
 });
 
 add_task(async function test_permission_prompt_without_the_header() {
-  const shown = BrowserTestUtils.waitForEvent(
+  let shown = BrowserTestUtils.waitForEvent(
     PopupNotifications.panel,
     "popupshown"
   );
@@ -153,15 +153,48 @@ add_task(async function test_permission_prompt_without_the_header() {
     "With the header hidden the prompt still points at the panel"
   );
 
-  const hidden = BrowserTestUtils.waitForEvent(
+  let hidden = BrowserTestUtils.waitForEvent(
     PopupNotifications.panel,
     "popuphidden"
   );
   PopupNotifications.getNotification("webRTC-shareDevices", browser).remove();
   await hidden;
+
+  // Permission prompts are persistent; others, like saving a password, go
+  // away when dismissed, and the header button is what brings them back.
+  shown = BrowserTestUtils.waitForEvent(PopupNotifications.panel, "popupshown");
+  const notification = PopupNotifications.show(
+    browser,
+    "zen-web-panels-test",
+    "A request that isn't persistent",
+    null,
+    { label: "OK", accessKey: "O", callback() {} }
+  );
+  await shown;
+  hidden = BrowserTestUtils.waitForEvent(
+    PopupNotifications.panel,
+    "popuphidden"
+  );
+  PopupNotifications.panel.hidePopup();
+  await hidden;
+  ok(notification.dismissed, "Clicking away dismisses it");
+
+  gZenWebPanels.hide();
+  shown = BrowserTestUtils.waitForEvent(PopupNotifications.panel, "popupshown");
+  gZenWebPanels.show(browser.getAttribute("zen-web-panel-id"));
+  await shown;
+  ok(true, "Without the header, showing the panel brings it back");
+
+  hidden = BrowserTestUtils.waitForEvent(
+    PopupNotifications.panel,
+    "popuphidden"
+  );
+  notification.remove();
+  await hidden;
   gZenWebPanels.hide();
   removeAllWebPanels();
 });
+
 add_task(async function test_http_auth_in_a_panel() {
   const { PromptTestUtils } = ChromeUtils.importESModule(
     "resource://testing-common/PromptTestUtils.sys.mjs"
