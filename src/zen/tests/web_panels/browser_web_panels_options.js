@@ -131,6 +131,42 @@ add_task(async function test_floating_panel_closes_on_outside_click() {
   removeAllWebPanels();
 });
 
+add_task(async function test_floating_panel_slides_in_and_out() {
+  const panel = ZenWebPanelsStore.addPanel("https://example.com/", {
+    floating: true,
+  });
+  const sliding = () =>
+    host()
+      .getAnimations()
+      .map(animation => animation.transitionProperty);
+  const settle = () =>
+    Promise.all(
+      host()
+        .getAnimations()
+        .map(animation => animation.finished)
+    );
+
+  gZenWebPanels.show(panel.id);
+  ok(sliding().includes("translate"), "Showing it slides it in");
+  await settle();
+
+  gZenWebPanels.hide();
+  ok(!gZenWebPanels.activeBrowser, "Hiding it takes effect right away");
+  ok(sliding().includes("translate"), "While it slides out");
+  isnot(getComputedStyle(host()).display, "none", "Still on screen");
+  await settle();
+  is(getComputedStyle(host()).display, "none", "And gone once it's out");
+
+  await SpecialPowers.pushPrefEnv({ set: [["ui.prefersReducedMotion", 1]] });
+  gZenWebPanels.show(panel.id);
+  is(sliding().length, 0, "With reduced motion it just appears");
+  gZenWebPanels.hide();
+  is(getComputedStyle(host()).display, "none", "And just disappears");
+  await SpecialPowers.popPrefEnv();
+
+  removeAllWebPanels();
+});
+
 add_task(async function test_hidden_header_and_badge() {
   const { panel } = await openWebPanel(
     TEST_ROOT + "file_web_panels_badge.html",

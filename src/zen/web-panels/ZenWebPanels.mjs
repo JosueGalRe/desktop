@@ -207,6 +207,7 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
     clearTimeout(entry.unloadTimer);
     this.#activeId = id;
     this.#host.hidden = false;
+    this.#host.removeAttribute("zen-sliding-out");
 
     // Without the header there's no button to bring back the requests the
     // user put away, so showing the panel does.
@@ -249,6 +250,21 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
 
     const hadFocus = this.#host.contains(document.activeElement);
     this.#host.hidden = true;
+
+    // A floating panel stays on screen while it slides out. Gecko doesn't
+    // transition display, so the CSS keeps it shown until its slide ends,
+    // which is right away with reduced motion.
+    if (this.#host.hasAttribute("floating")) {
+      this.#host.setAttribute("zen-sliding-out", "true");
+      Promise.allSettled(
+        this.#host.getAnimations().map(animation => animation.finished)
+      ).then(() => {
+        if (this.#host.hidden) {
+          this.#host.removeAttribute("zen-sliding-out");
+        }
+      });
+    }
+
     this.#updateSidebar();
     // The panel's prompts hide with it, and the tab's come back.
     PopupNotifications.anchorVisibilityChange();
