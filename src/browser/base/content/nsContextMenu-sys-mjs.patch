@@ -1,8 +1,18 @@
 diff --git a/browser/base/content/nsContextMenu.sys.mjs b/browser/base/content/nsContextMenu.sys.mjs
-index e7485dde03ae44ce8e36dac9e28ad95acb9d3fbc..4d60e313b079042b731371dd3a3392702f7dc044 100644
+index e7485dde03ae44ce8e36dac9e28ad95acb9d3fbc..faf7ee47440431d2f017de7f77ffb6d7a84e98e1 100644
 --- a/browser/base/content/nsContextMenu.sys.mjs
 +++ b/browser/base/content/nsContextMenu.sys.mjs
-@@ -400,6 +400,31 @@ export class nsContextMenu {
+@@ -158,7 +158,8 @@ export class nsContextMenu {
+     if (!aIsShift) {
+       let tab =
+         gBrowser && gBrowser.getTabForBrowser
+-          ? gBrowser.getTabForBrowser(this.browser)
++          ? (gBrowser.getTabForBrowser(this.browser) ??
++            this.window.gZenWebPanels?.extensionTabFor(this.browser))
+           : undefined;
+ 
+       let subject = {
+@@ -400,6 +401,31 @@ export class nsContextMenu {
      this.initTextFragmentItems();
      this.pdfjsContextMenu.initItems();
  
@@ -34,7 +44,7 @@ index e7485dde03ae44ce8e36dac9e28ad95acb9d3fbc..4d60e313b079042b731371dd3a339270
      this.showHideSeparators(aXulMenu);
      if (!aXulMenu.showHideSeparators) {
        // Set the showHideSeparators function on the menu itself so that
-@@ -2573,6 +2598,14 @@ export class nsContextMenu {
+@@ -2573,6 +2599,14 @@ export class nsContextMenu {
    }
  
    bookmarkThisPage() {

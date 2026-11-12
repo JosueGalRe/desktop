@@ -53,6 +53,75 @@ const PANEL_COMMANDS = {
 };
 
 /**
+ * A panel as WebExtensions see it. Their APIs only reach pages in tabs, so
+ * TabTracker (ext-browser.js) gets one of these for a panel's browser: a
+ * hidden tab that is never selected, which tabs.query doesn't list. It has
+ * what TabTracker and its Tab wrapper read from a <tab>.
+ */
+class nsZenWebPanelExtensionTab {
+  hidden = true;
+  pinned = false;
+  selected = false;
+  multiselected = false;
+  undiscardable = true;
+  openerTab = null;
+  index = -1;
+  lastAccessed = Date.now();
+  #entry;
+
+  constructor(entry) {
+    this.#entry = entry;
+  }
+
+  get linkedBrowser() {
+    return this.#entry.browser;
+  }
+
+  get linkedPanel() {
+    return this.#entry.panel.id;
+  }
+
+  get documentGlobal() {
+    return this.linkedBrowser.documentGlobal;
+  }
+
+  get ownerDocument() {
+    return this.linkedBrowser.ownerDocument;
+  }
+
+  get parentNode() {
+    return this.linkedBrowser.parentNode;
+  }
+
+  get label() {
+    return this.#entry.panel.title;
+  }
+
+  get muted() {
+    return this.linkedBrowser.audioMuted;
+  }
+
+  get soundPlaying() {
+    return Boolean(this.#entry.audible);
+  }
+
+  get userContextId() {
+    return containerOf(this.linkedBrowser);
+  }
+
+  hasAttribute() {
+    return false;
+  }
+
+  getAttribute(attribute) {
+    return attribute === "busy" &&
+      this.linkedBrowser.webProgress?.isLoadingDocument
+      ? "true"
+      : null;
+  }
+}
+
+/**
  * Web panels: sites docked next to the tab content, each one in its own
  * <browser>. The browsers are never tabs, so they stay out of the tab strip,
  * spaces, window sync and session restore.
@@ -297,9 +366,45 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
     }
 
     this.#stopEntry(entry);
+
+    // Extensions that reached the panel see its tab go: see ext-browser.js.
+    if (entry.extensionTab) {
+      window.dispatchEvent(
+        new CustomEvent("ZenWebPanelClose", { detail: entry.extensionTab })
+      );
+    }
+
     entry.browser.destroy();
     entry.container.remove();
     this.#updateSidebar();
+  }
+
+  /**
+   * Called by TabTracker (ext-browser.js), which gives extensions this
+   * panel's tab.
+   *
+   * @param {Element} browser
+   * @returns {nsZenWebPanelExtensionTab|null}
+   */
+  extensionTabFor(browser) {
+    for (const entry of this.#entries.values()) {
+      if (entry.browser === browser) {
+        entry.extensionTab ??= new nsZenWebPanelExtensionTab(entry);
+        return entry.extensionTab;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * @returns {nsZenWebPanelExtensionTab[]} The tabs given to extensions, for
+   *   TabTracker to remove when the window closes.
+   */
+  get extensionTabs() {
+    return [...this.#entries.values()]
+      .map(entry => entry.extensionTab)
+      .filter(Boolean);
   }
 
   /**

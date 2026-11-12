@@ -19,6 +19,8 @@ support-files = [
 
 ["browser_web_panels_context_menu.js"]
 
+["browser_web_panels_extensions.js"]
+
 ["browser_web_panels_options.js"]
 
 ["browser_web_panels_permissions.js"]
