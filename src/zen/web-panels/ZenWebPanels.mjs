@@ -192,6 +192,14 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
     const previousId = this.#host.hidden ? null : this.#activeId;
     const entry = this.#entries.get(id) ?? this.#createEntry(panel);
 
+    // Another panel's page in fullscreen would keep covering the window.
+    if (
+      this.#host.contains(document.fullscreenElement) &&
+      document.fullscreenElement !== entry.browser
+    ) {
+      document.exitFullscreen();
+    }
+
     for (const [otherId, other] of this.#entries) {
       other.container.hidden = otherId !== id;
     }

@@ -111,8 +111,24 @@ add_task(async function test_panel_page_can_go_fullscreen() {
   );
   gZenWebPanels.show(browser.getAttribute("zen-web-panel-id"));
 
-  // The browser in fullscreen covers the window from the top layer, so an
-  // open panel doesn't take room from a tab in fullscreen either.
+  // So does switching to another panel.
+  const other = ZenWebPanelsStore.addPanel("https://example.org/");
+  await SpecialPowers.spawn(browser, [], () =>
+    content.document.body.requestFullscreen()
+  );
+  await TestUtils.waitForCondition(
+    () => document.fullscreenElement === browser
+  );
+  gZenWebPanels.show(other.id);
+  await TestUtils.waitForCondition(
+    () =>
+      !document.fullscreenElement &&
+      !document.documentElement.hasAttribute("inDOMFullscreen"),
+    "Switching panels leaves fullscreen"
+  );
+  gZenWebPanels.show(browser.getAttribute("zen-web-panel-id"));
+
+  // A tab in fullscreen takes the whole window too, with a panel open.
   await BrowserTestUtils.withNewTab("https://example.org/", async tab => {
     await SpecialPowers.spawn(tab, [], () =>
       content.document.body.requestFullscreen()
