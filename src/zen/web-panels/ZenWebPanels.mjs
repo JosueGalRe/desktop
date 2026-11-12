@@ -688,8 +688,17 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
 
   #loadStartupPanels() {
     // Only the first window: a second copy of a chat app would log out the
-    // first one.
-    if (BrowserWindowTracker.windowCount > 1) {
+    // first one. Windows restored with the session finish starting in any
+    // order, so this goes by the order they were opened in.
+    const [firstWindow] = [
+      ...Services.wm.getEnumerator("navigator:browser"),
+    ].filter(
+      browserWindow =>
+        !PrivateBrowsingUtils.isWindowPrivate(browserWindow) &&
+        browserWindow.toolbar.visible
+    );
+
+    if (firstWindow !== window) {
       return;
     }
 
