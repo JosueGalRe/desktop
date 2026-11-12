@@ -178,8 +178,10 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
 
   /**
    * @param {string} id
+   * @param {object} [options]
+   * @param {boolean} [options.takeFocus] - Moves the focus into the panel.
    */
-  show(id) {
+  show(id, { takeFocus = true } = {}) {
     const panel = this.#panelFor(id);
 
     // Private, popup and disabled windows have no host, but get the keys.
@@ -206,7 +208,10 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
 
     this.#updateHeader();
     this.#updateSidebar();
-    entry.browser.focus();
+
+    if (takeFocus) {
+      entry.browser.focus();
+    }
 
     if (previousId && previousId !== id) {
       this.#leave(previousId);
@@ -494,8 +499,9 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
         const wasVisible = this.activeBrowser === entry.browser;
         this.unload(id);
 
+        // Changed from the editor, which keeps the focus.
         if (wasVisible) {
-          this.show(id);
+          this.show(id, { takeFocus: false });
         }
 
         continue;

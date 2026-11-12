@@ -496,3 +496,28 @@ add_task(async function test_panel_audio_with_media_controls_off() {
   removeAllWebPanels();
   await SpecialPowers.popPrefEnv();
 });
+
+add_task(async function test_editing_the_visible_panel_keeps_the_focus() {
+  const { panel } = await openWebPanel("https://example.com/");
+  const popup = () => document.getElementById("zen-web-panels-editor");
+
+  gZenWebPanels.edit(panel.id);
+  await TestUtils.waitForCondition(() => popup()?.state === "open");
+  const url = popup().querySelector(".zen-web-panels-editor-url");
+  url.focus();
+  url.value = "https://example.org/";
+  url.dispatchEvent(new Event("change"));
+
+  await TestUtils.waitForCondition(
+    () =>
+      gZenWebPanels.activeBrowser?.currentURI.spec === "https://example.org/",
+    "The panel loads its new address"
+  );
+  is(document.activeElement, url, "The focus stays in the editor");
+
+  const hidden = BrowserTestUtils.waitForEvent(popup(), "popuphidden");
+  popup().hidePopup();
+  await hidden;
+  gZenWebPanels.hide();
+  removeAllWebPanels();
+});
