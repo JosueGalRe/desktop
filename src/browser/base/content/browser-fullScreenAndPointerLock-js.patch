@@ -1,5 +1,5 @@
 diff --git a/browser/base/content/browser-fullScreenAndPointerLock.js b/browser/base/content/browser-fullScreenAndPointerLock.js
-index 58b32cc90a3a0eaef01d83837ca7825d8624b90a..4d1b6f72bd00e38f0ca74c44a22518c643f2ebca 100644
+index 58b32cc90a3a0eaef01d83837ca7825d8624b90a..6bc49a9629c2c2a04d878a20c2fa780544581986 100644
 --- a/browser/base/content/browser-fullScreenAndPointerLock.js
 +++ b/browser/base/content/browser-fullScreenAndPointerLock.js
 @@ -208,7 +208,18 @@ var PointerlockFsWarning = {
@@ -38,7 +38,27 @@ index 58b32cc90a3a0eaef01d83837ca7825d8624b90a..4d1b6f72bd00e38f0ca74c44a22518c6
      this._currentToolbarShift = shiftSize;
    },
  
-@@ -639,7 +642,9 @@ var FullScreen = {
+@@ -572,11 +575,18 @@ var FullScreen = {
+   },
+ 
+   _handlePermPromptShow() {
++    // Zen: a web panel can be the browser in fullscreen instead of the tab.
++    let panelBrowser = window.gZenWebPanels?.activeBrowser;
++    let fullscreenBrowser =
++      panelBrowser && document.fullscreenElement == panelBrowser
++        ? panelBrowser
++        : gBrowser.selectedBrowser;
+     if (
+       !FullScreen.permissionsFullScreenAllowed &&
+       window.fullScreen &&
+       PopupNotifications.getNotification(
+-        this._permissionNotificationIDs
++        this._permissionNotificationIDs,
++        fullscreenBrowser
+       ).filter(n => !n.dismissed).length
+     ) {
+       this.exitDomFullScreen();
+@@ -639,7 +649,9 @@ var FullScreen = {
      // actually visible now.
      if (
        !aBrowser ||
@@ -49,3 +69,13 @@ index 58b32cc90a3a0eaef01d83837ca7825d8624b90a..4d1b6f72bd00e38f0ca74c44a22518c6
        // The top-level window has lost focus since the request to enter
        // full-screen was made. Cancel full-screen.
        Services.focus.activeWindow != window
+@@ -651,7 +663,8 @@ var FullScreen = {
+     // Remove permission prompts when entering full-screen.
+     if (!FullScreen.permissionsFullScreenAllowed) {
+       let notifications = PopupNotifications.getNotification(
+-        this._permissionNotificationIDs
++        this._permissionNotificationIDs,
++        aBrowser
+       ).filter(n => !n.dismissed);
+       PopupNotifications.remove(
+         notifications,

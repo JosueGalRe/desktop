@@ -308,3 +308,62 @@ add_task(async function test_escape_answers_the_prompt_of_a_focused_panel() {
   gZenWebPanels.hide();
   removeAllWebPanels();
 });
+
+add_task(async function test_panel_prompts_and_fullscreen() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["full-screen-api.allow-trusted-requests-only", false],
+      ["full-screen-api.transition-duration.enter", "0 0"],
+      ["full-screen-api.transition-duration.leave", "0 0"],
+      ["full-screen-api.warning.timeout", 0],
+    ],
+  });
+  const goFullscreen = async browser => {
+    browser.focus();
+    await SpecialPowers.spawn(browser, [], () =>
+      content.document.body.requestFullscreen()
+    );
+    await TestUtils.waitForCondition(
+      () => document.fullscreenElement === browser
+    );
+  };
+
+  // A pending request goes away when its page goes fullscreen, as in a tab.
+  let shown = BrowserTestUtils.waitForEvent(
+    PopupNotifications.panel,
+    "popupshown"
+  );
+  const { browser } = await openWebPanel(
+    TEST_ROOT + "file_web_panels_permission.html"
+  );
+  await shown;
+  await goFullscreen(browser);
+  await TestUtils.waitForCondition(
+    () => !PopupNotifications.getNotification("webRTC-shareDevices", browser),
+    "Going fullscreen removes the panel's pending request"
+  );
+  await SpecialPowers.spawn(browser, [], () =>
+    content.document.exitFullscreen()
+  );
+  await TestUtils.waitForCondition(() => !document.fullscreenElement);
+
+  // And a request from a page in fullscreen takes it out of fullscreen.
+  await goFullscreen(browser);
+  shown = BrowserTestUtils.waitForEvent(PopupNotifications.panel, "popupshown");
+  await SpecialPowers.spawn(browser, [], () => content.wrappedJSObject.ask());
+  await shown;
+  await TestUtils.waitForCondition(
+    () => !document.fullscreenElement,
+    "A request from the panel leaves fullscreen first"
+  );
+
+  const hidden = BrowserTestUtils.waitForEvent(
+    PopupNotifications.panel,
+    "popuphidden"
+  );
+  PopupNotifications.getNotification("webRTC-shareDevices", browser).remove();
+  await hidden;
+  gZenWebPanels.hide();
+  removeAllWebPanels();
+  await SpecialPowers.popPrefEnv();
+});
