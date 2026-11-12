@@ -99,6 +99,51 @@ add_task(async function test_dragging_an_item_reorders_panels() {
   removeAllWebPanels();
 });
 
+add_task(async function test_dragging_survives_a_save_meanwhile() {
+  const first = ZenWebPanelsStore.addPanel("https://example.com/");
+  const second = ZenWebPanelsStore.addPanel("https://example.org/");
+  const source = sidebarItemFor(first);
+  const target = sidebarItemFor(second);
+  const bounds = target.getBoundingClientRect();
+  const drag = (type, element, dataTransfer, clientY = 0) =>
+    element.dispatchEvent(
+      new DragEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        clientY,
+        dataTransfer,
+      })
+    );
+
+  const panelTransfer = new DataTransfer();
+  drag("dragstart", source, panelTransfer);
+  // Like a panel saving its last page in the middle of the drag.
+  ZenWebPanelsStore.updatePanel(second.id, { title: "Second" });
+  drag("dragover", target, panelTransfer, bounds.bottom - 1);
+  drag("drop", target, panelTransfer, bounds.bottom - 1);
+  drag("dragend", source, panelTransfer);
+
+  Assert.deepEqual(
+    ZenWebPanelsStore.getPanels().map(panel => panel.id),
+    [second.id, first.id],
+    "The new order is kept"
+  );
+
+  const linkTransfer = new DataTransfer();
+  linkTransfer.setData("text/uri-list", "https://example.net/");
+  drag("dragover", sidebar(), linkTransfer);
+  drag("drop", sidebar(), linkTransfer);
+  ok(
+    ZenWebPanelsStore.getPanels().some(
+      panel => panel.url === "https://example.net/"
+    ),
+    "And dropping a link afterwards still adds it"
+  );
+
+  gZenWebPanels.hide();
+  removeAllWebPanels();
+});
+
 add_task(async function test_shortcut_toggles_last_panel() {
   const first = ZenWebPanelsStore.addPanel("https://example.com/");
   const second = ZenWebPanelsStore.addPanel("https://example.org/");

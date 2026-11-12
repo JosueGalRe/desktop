@@ -1064,6 +1064,12 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
   }
 
   #renderSidebar() {
+    // A drag moves the items itself, and they're rendered once it ends:
+    // replacing the dragged one would leave the drag without its item.
+    if (this.#draggedItem) {
+      return;
+    }
+
     const items = this.#allPanels().map(panel => {
       const item = document.createXULElement("toolbarbutton");
       const label = panel.title || this.#labelFor(panel.url);
@@ -1313,6 +1319,8 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
 
       const list = this.#sidebar.querySelector(".zen-web-panels-sidebar-list");
 
+      // The drag is over: saving the order renders the items again.
+      this.#draggedItem = null;
       ZenWebPanelsStore.reorderPanels(
         [...list.children].map(item => item.getAttribute("zen-web-panel-id"))
       );
