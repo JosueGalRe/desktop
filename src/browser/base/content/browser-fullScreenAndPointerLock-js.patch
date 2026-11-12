@@ -1,15 +1,20 @@
 diff --git a/browser/base/content/browser-fullScreenAndPointerLock.js b/browser/base/content/browser-fullScreenAndPointerLock.js
-index 58b32cc90a3a0eaef01d83837ca7825d8624b90a..675e5bbdb0f7d34d7745fb4ef19f3643d018bca8 100644
+index 58b32cc90a3a0eaef01d83837ca7825d8624b90a..4d1b6f72bd00e38f0ca74c44a22518c643f2ebca 100644
 --- a/browser/base/content/browser-fullScreenAndPointerLock.js
 +++ b/browser/base/content/browser-fullScreenAndPointerLock.js
-@@ -208,7 +208,13 @@ var PointerlockFsWarning = {
+@@ -208,7 +208,18 @@ var PointerlockFsWarning = {
      // If the user clicked buttons in the warning box, it would have
      // been focused, and any key events would be directed at the (now
      // hidden) chrome document instead of the target document.
 -    gBrowser.selectedBrowser.focus();
-+    // A Zen web panel can be the browser in fullscreen instead of the tab.
++    // A Zen web panel can be the browser in fullscreen instead of the tab,
++    // and keeps the focus once it leaves fullscreen.
 +    let panelBrowser = window.gZenWebPanels?.activeBrowser;
-+    if (panelBrowser && document.fullscreenElement == panelBrowser) {
++    if (
++      panelBrowser &&
++      (document.fullscreenElement == panelBrowser ||
++        document.activeElement == panelBrowser)
++    ) {
 +      panelBrowser.focus();
 +    } else {
 +      gBrowser.selectedBrowser.focus();
@@ -17,7 +22,7 @@ index 58b32cc90a3a0eaef01d83837ca7825d8624b90a..675e5bbdb0f7d34d7745fb4ef19f3643
    },
  
    // State could be one of "onscreen", "ontop", "hiding", and
-@@ -523,15 +529,7 @@ var FullScreen = {
+@@ -523,15 +534,7 @@ var FullScreen = {
      // _menubarShift originates from Cocoa widget code as a very precise
      // double. We don't need that kind of precision in our CSS.
      shiftSize = shiftSize.toFixed(2);
@@ -33,7 +38,7 @@ index 58b32cc90a3a0eaef01d83837ca7825d8624b90a..675e5bbdb0f7d34d7745fb4ef19f3643
      this._currentToolbarShift = shiftSize;
    },
  
-@@ -639,7 +637,9 @@ var FullScreen = {
+@@ -639,7 +642,9 @@ var FullScreen = {
      // actually visible now.
      if (
        !aBrowser ||

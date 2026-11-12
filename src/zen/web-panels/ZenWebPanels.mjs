@@ -218,6 +218,11 @@ class nsZenWebPanels extends nsZenDOMOperatedFeature {
       return;
     }
 
+    // Otherwise the window would stay in fullscreen with the page gone.
+    if (this.#host.contains(document.fullscreenElement)) {
+      document.exitFullscreen();
+    }
+
     const hadFocus = this.#host.contains(document.activeElement);
     this.#host.hidden = true;
     this.#updateSidebar();

@@ -95,6 +95,22 @@ add_task(async function test_panel_page_can_go_fullscreen() {
     "And leaves fullscreen"
   );
 
+  // Hiding the panel takes its page out of fullscreen.
+  await SpecialPowers.spawn(browser, [], () =>
+    content.document.body.requestFullscreen()
+  );
+  await TestUtils.waitForCondition(
+    () => document.fullscreenElement === browser
+  );
+  gZenWebPanels.hide();
+  await TestUtils.waitForCondition(
+    () =>
+      !document.fullscreenElement &&
+      !document.documentElement.hasAttribute("inDOMFullscreen"),
+    "Hiding the panel leaves fullscreen"
+  );
+  gZenWebPanels.show(browser.getAttribute("zen-web-panel-id"));
+
   // The browser in fullscreen covers the window from the top layer, so an
   // open panel doesn't take room from a tab in fullscreen either.
   await BrowserTestUtils.withNewTab("https://example.org/", async tab => {
@@ -118,6 +134,7 @@ add_task(async function test_panel_page_can_go_fullscreen() {
   removeAllWebPanels();
   await SpecialPowers.popPrefEnv();
 });
+
 add_task(async function test_navigation_keys_when_the_tab_cant_navigate() {
   // History entries need user interaction to be gone back to otherwise.
   await SpecialPowers.pushPrefEnv({
