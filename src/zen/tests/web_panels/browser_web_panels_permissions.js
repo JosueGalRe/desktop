@@ -284,3 +284,27 @@ add_task(async function test_tab_icons_with_a_panel_request_pending() {
   gZenWebPanels.hide();
   removeAllWebPanels();
 });
+
+add_task(async function test_escape_answers_the_prompt_of_a_focused_panel() {
+  const shown = BrowserTestUtils.waitForEvent(
+    PopupNotifications.panel,
+    "popupshown"
+  );
+  const { browser } = await openWebPanel(
+    TEST_ROOT + "file_web_panels_permission.html"
+  );
+  await shown;
+
+  browser.focus();
+  const hidden = BrowserTestUtils.waitForEvent(
+    PopupNotifications.panel,
+    "popuphidden"
+  );
+  EventUtils.synthesizeKey("KEY_Escape");
+  await hidden;
+  ok(true, "Esc in the panel that asked closes its prompt");
+
+  PopupNotifications.getNotification("webRTC-shareDevices", browser)?.remove();
+  gZenWebPanels.hide();
+  removeAllWebPanels();
+});
